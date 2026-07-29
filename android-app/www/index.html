@@ -159,9 +159,11 @@
     transform:translateY(110%);transition:transform .26s cubic-bezier(.2,.8,.2,1);max-height:92vh;overflow-y:auto;}
   .sheet.show{transform:translateY(0);}
   .grab{width:42px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 14px;}
-  /* نوار بالای صفحات داخلی همیشه ثابت می‌ماند */
-  .sheet>.grab{position:sticky;top:0;z-index:31;box-shadow:0 -10px 0 10px var(--surface),0 10px 0 10px var(--surface);}
-  .sheet>h2{position:sticky;top:13px;z-index:30;background:var(--surface);padding:4px 0 8px;box-shadow:0 8px 10px -10px rgba(14,63,49,.28);}
+  /* نوار بالای صفحات داخلی همیشه ثابت می‌ماند و پشتش دیده نمی‌شود */
+  .sheet>.grab{position:sticky;top:0;z-index:31;display:block;width:auto;height:18px;
+    background:var(--surface);margin:-8px -18px 8px;padding:0;border-radius:0;box-shadow:none;}
+  .sheet>.grab::after{content:'';display:block;width:42px;height:5px;border-radius:3px;background:var(--line);margin:8px auto 0;}
+  .sheet>h2{position:sticky;top:18px;z-index:30;background:var(--surface);padding:4px 0 8px;box-shadow:0 8px 10px -10px rgba(14,63,49,.28);}
   .sheet h2{margin:0 0 16px;font-size:18px;display:flex;justify-content:space-between;align-items:center;}
   .sheet h2 .add-mini{font-size:13px;color:var(--brand);font-weight:700;background:var(--income-soft);padding:6px 12px;border-radius:10px;}
 
@@ -890,6 +892,7 @@
   .inbox-row:last-child{border-bottom:none;}
   .ocr-state{font-size:10px;color:var(--muted);margin-top:4px;}
   .neutral-link-status{display:inline-block;font-size:9.5px;padding:1px 6px;border-radius:9px;background:var(--gold-soft);color:var(--brand-deep);margin-inline-start:4px;font-weight:800;}
+  #internalDbSub{white-space:pre-line;}
   .menu-group-title{font-size:10px;color:var(--muted);font-weight:900;margin:13px 4px 2px;letter-spacing:.2px;}
   .encrypt-note{font-size:11px;color:var(--muted);line-height:1.7;margin:0 0 10px;}
   @media(max-width:380px){.today-dash-grid{grid-template-columns:repeat(2,1fr);}.advanced-form-row{flex-direction:column;}}
@@ -1575,12 +1578,38 @@ function idbDel(k){capMirrorDel(k);return idbOpen().then(function(db){return new
 function idbKeys(){return idbOpen().then(function(db){return new Promise(function(res){
   var t=db.transaction('kv','readonly');var r=t.objectStore('kv').getAllKeys();r.onsuccess=function(){res(r.result||[]);};r.onerror=function(){res([]);};});}).catch(function(){return [];});}
 
+var lastDbSizeTxt='';
+function fmtBytes(n){
+  if(!n)return '۰';
+  if(n<1024)return fa(n)+' بایت';
+  if(n<1048576)return fa(Math.round(n/1024))+' KB';
+  return fa((n/1048576).toFixed(1)).replace('.','٫')+' MB';
+}
+function computeInternalDbSize(){
+  var jsonSize=0;
+  try{jsonSize=new Blob([JSON.stringify(state)]).size;}catch(e){}
+  return idbKeys().then(function(keys){
+    var pk=keys.filter(function(k){return shouldMirrorKey(k);});
+    return Promise.all(pk.map(function(k){return idbGet(k).then(function(v){
+      if(v instanceof Blob)return v.size;
+      if(Array.isArray(v))return v.reduce(function(s,x){return s+((x&&x.size)||0);},0);
+      try{return new Blob([JSON.stringify(v)]).size;}catch(e){return 0;}
+    }).catch(function(){return 0;});}))
+    .then(function(sizes){return {json:jsonSize,media:sizes.reduce(function(a,b){return a+b;},0),count:pk.length};});
+  }).catch(function(){return {json:jsonSize,media:0,count:0};});
+}
+function refreshDbSize(){
+  computeInternalDbSize().then(function(r){
+    lastDbSizeTxt='حجم: داده '+fmtBytes(r.json)+' · عکس/سند '+fmtBytes(r.media)+' · جمع '+fmtBytes(r.json+r.media);
+    updateInternalDbUI();
+  });
+}
 function updateInternalDbUI(){
   var sub=document.getElementById('internalDbSub');
   if(!sub)return;
   var when=state&&state.meta&&state.meta.savedAt?new Date(state.meta.savedAt).toLocaleString('fa-IR'):'هنوز ذخیره نشده';
   var where=isCapacitorApp()?'حافظهٔ خصوصی اپ اندروید':'حافظهٔ داخلی مرورگر/برنامه';
-  sub.textContent='اصلی: '+where+' · آخرین ذخیره: '+when+(isDirty?' · در حال نوشتن…':' · آماده');
+  sub.textContent='اصلی: '+where+' · آخرین ذخیره: '+when+(isDirty?' · در حال نوشتن…':' · آماده')+(lastDbSizeTxt?'\n'+lastDbSizeTxt:'');
 }
 
 function saveInternalToCapacitor(json){
@@ -3191,7 +3220,23 @@ function exportCsv(){
   ]);
   download(blob,'دفترحساب-'+excelToday()+'.xlsx');
   toast('فایل اکسل مرتب ساخته شد ✓');}
-function download(blob,name){var a=document.createElement('a'),url=URL.createObjectURL(blob);
+function download(blob,name){
+  if(isCapacitorApp()){
+    var Fs=capFilesystem();
+    if(Fs){
+      blobToB64(blob).then(function(b64){
+        return Fs.writeFile({path:'exports/'+name,data:b64,directory:'CACHE',recursive:true});
+      }).then(function(){
+        return Fs.getUri({path:'exports/'+name,directory:'CACHE'});
+      }).then(function(r){
+        var Share=window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Share;
+        if(Share&&r&&r.uri)return Share.share({title:name,files:[r.uri]}).catch(function(){});
+        toast('فایل آماده شد: '+name);
+      }).catch(function(){toast('ساخت فایل ناموفق بود');});
+      return;
+    }
+  }
+  var a=document.createElement('a'),url=URL.createObjectURL(blob);
   a.href=url;a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(url);a.remove();},100);}
 function importJson(file){var r=new FileReader();r.onload=function(){try{var p=JSON.parse(r.result);
   if(p&&p.books&&p.activeBookId){state=normalizeState(p);}
@@ -3311,7 +3356,7 @@ document.getElementById('sourceToggle').querySelectorAll('button').forEach(funct
 document.getElementById('prevM').onclick=function(){view.jm--;if(view.jm<1){view.jm=12;view.jy--;}activeChip='all';render();};
 document.getElementById('nextM').onclick=function(){view.jm++;if(view.jm>12){view.jm=1;view.jy++;}activeChip='all';render();};
 document.getElementById('search').oninput=render;document.getElementById('sortSelect').onchange=render;
-document.getElementById('menuBtn').onclick=function(){updateFsUI();enterTopLevelSheet('menuSheet');};
+document.getElementById('menuBtn').onclick=function(){updateFsUI();refreshDbSize();enterTopLevelSheet('menuSheet');};
 document.getElementById('reportBtn').onclick=openReport;
 document.querySelectorAll('#repPresets button').forEach(function(b){b.onclick=function(){setRepMode(b.dataset.r);};});
 ['fY','fM','fD','tY','tM','tD'].forEach(function(id){var e=document.getElementById(id);if(e)e.onchange=function(){if(repState.mode==='custom')renderReport();};});
