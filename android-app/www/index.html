@@ -315,6 +315,13 @@
   #sheet .field input,#sheet .field select,#sheet .field textarea{padding:9px;border-radius:10px;font-size:13px;}
   #sheet .field textarea{min-height:52px;resize:none;}
   #sheet .amount-in{font-size:17px!important;padding:8px;}
+  #sheet .form-sec{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:11px 12px 3px;margin-bottom:10px;}
+  #sheet .form-sec-title{font-size:11px;font-weight:900;color:var(--muted);margin:0 2px 9px;letter-spacing:.3px;}
+  #sheet .form-sec .field{margin-bottom:10px;}
+  #sheet .form-sec .field input,#sheet .form-sec .field select,#sheet .form-sec .field textarea{background:var(--surface);}
+  body.dark #sheet .form-sec{background:#16211d;border-color:#243830;}
+  body.dark #sheet .form-sec .field input,body.dark #sheet .form-sec .field select,body.dark #sheet .form-sec .field textarea{background:#1d2a25;}
+  #sheet .docno-field input{border-style:dashed;}
   #sheet .entry-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start;}
   #sheet .entry-pair .field{min-width:0;}
   #sheet .entry-pair input,#sheet .entry-pair textarea{width:100%;min-width:0;}
@@ -989,9 +996,8 @@
     <button data-s="fund">تنخواه</button>
     <button data-s="personal">💳 کارت شخصی</button>
   </div>
-  <div class="field docno-field"><label>شماره سند</label><input id="docNoIn" value="پس از ذخیره ساخته می‌شود" readonly></div>
-
-  <div class="entry-pair amount-desc-pair">
+  <div class="form-sec">
+    <div class="form-sec-title">💵 مبلغ و عنوان</div>
     <div class="field">
       <label>مبلغ (تومان)</label>
       <input class="amount-in" id="amountIn" inputmode="numeric" placeholder="۰" autocomplete="off">
@@ -1004,41 +1010,49 @@
     </div>
   </div>
 
-  <div class="entry-pair note-cat-pair">
-    <div class="field">
-      <label>توضیحات رسید</label>
-      <textarea id="receiptNoteIn" placeholder="توضیح اضافه…"></textarea>
-    </div>
+  <div class="form-sec">
+    <div class="form-sec-title">🏷️ دسته‌بندی</div>
     <div class="field category-field">
-      <label>دسته‌بندی</label>
       <div class="cat-grid" id="catGrid"></div>
     </div>
   </div>
 
-  <div class="field" id="accountField">
-    <label id="accountLabel">حساب</label>
-    <select id="accountIn"></select>
-    <div class="account-hint" id="accountHint"></div>
-  </div>
-  <div class="field" id="neutralLinkField" style="display:none">
-    <label>مرتبط با کدام واریز غیر درآمدی؟</label>
-    <select id="neutralLinkIn"></select>
-    <div class="link-hint" id="neutralLinkHint">اختیاری؛ برای پیگیری مانده قابل برگشت</div>
+  <div class="form-sec">
+    <div class="form-sec-title">🗂️ جزئیات ثبت</div>
+    <div class="field" id="accountField">
+      <label id="accountLabel">حساب</label>
+      <select id="accountIn"></select>
+      <div class="account-hint" id="accountHint"></div>
+    </div>
+    <div class="field" id="neutralLinkField" style="display:none">
+      <label>مرتبط با کدام واریز غیر درآمدی؟</label>
+      <select id="neutralLinkIn"></select>
+      <div class="link-hint" id="neutralLinkHint">اختیاری؛ برای پیگیری مانده قابل برگشت</div>
+    </div>
+    <div class="field"><label>تاریخ</label><div class="date-row"><select id="dY"></select><select id="dM"></select><select id="dD"></select></div></div>
+    <div class="field docno-field"><label>شماره سند (خودکار)</label><input id="docNoIn" value="پس از ذخیره ساخته می‌شود" readonly></div>
   </div>
 
-  <div class="field"><label>تاریخ</label><div class="date-row"><select id="dY"></select><select id="dM"></select><select id="dD"></select></div></div>
-  <div class="field"><label>عکس فاکتور (اختیاری)</label>
-    <div class="receipt-row">
-      <div class="receipt-actions">
-        <button type="button" class="receipt-add" id="receiptCam">📷 دوربین</button>
-        <button type="button" class="receipt-add" id="receiptAdd">📁 انتخاب عکس</button>
+  <div class="form-sec">
+    <div class="form-sec-title">🧾 رسید و توضیحات</div>
+    <div class="field"><label>عکس فاکتور (اختیاری)</label>
+      <div class="receipt-row">
+        <div class="receipt-actions">
+          <button type="button" class="receipt-add" id="receiptCam">📷 دوربین</button>
+          <button type="button" class="receipt-add" id="receiptAdd">📁 انتخاب عکس</button>
+        </div>
+        <select id="imgQ" class="receipt-qsel" title="میزان فشرده‌سازی"></select>
+        <div class="receipt-thumbs" id="receiptThumbs"></div>
       </div>
-      <select id="imgQ" class="receipt-qsel" title="میزان فشرده‌سازی"></select>
-      <div class="receipt-thumbs" id="receiptThumbs"></div>
+      <input type="file" id="receiptCamIn" accept="image/*" capture="environment" style="display:none;">
+      <input type="file" id="receiptIn" accept="image/*" multiple style="display:none;">
     </div>
-    <input type="file" id="receiptCamIn" accept="image/*" capture="environment" style="display:none;">
-    <input type="file" id="receiptIn" accept="image/*" multiple style="display:none;">
+    <div class="field">
+      <label>توضیحات رسید (اختیاری)</label>
+      <textarea id="receiptNoteIn" placeholder="توضیح اضافه…"></textarea>
+    </div>
   </div>
+
   <button class="save-btn" id="saveBtn">ذخیره</button>
   <button class="del-link" id="delBtn" style="display:none;">حذف این تراکنش</button>
 </div>
@@ -1502,11 +1516,61 @@ var fileHandle=null, pendingHandle=null;
 function idbOpen(){return new Promise(function(res,rej){var o=indexedDB.open('hesab_kv',1);
   o.onupgradeneeded=function(){o.result.createObjectStore('kv');};
   o.onsuccess=function(){res(o.result);};o.onerror=function(){rej();};});}
-function idbSet(k,v){return idbOpen().then(function(db){return new Promise(function(res){
+/* عکس فاکتورها و اسناد هم داخل حافظه خصوصی خود برنامه ذخیره می‌شوند */
+var CAP_MIRROR_PREFIXES=['photo:','photos:','invoice:','inboxPhoto:'];
+function shouldMirrorKey(k){k=String(k);for(var i=0;i<CAP_MIRROR_PREFIXES.length;i++)if(k.indexOf(CAP_MIRROR_PREFIXES[i])===0)return true;return false;}
+function capKeyFile(k){return 'kv/'+encodeURIComponent(String(k))+'.json';}
+function blobToB64(blob){return new Promise(function(res,rej){var r=new FileReader();
+  r.onload=function(){var s=String(r.result);res(s.slice(s.indexOf(',')+1));};
+  r.onerror=function(){rej();};r.readAsDataURL(blob);});}
+function b64ToBlob(b64,mime){var bin=atob(b64),arr=new Uint8Array(bin.length);
+  for(var i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return new Blob([arr],{type:mime||'image/jpeg'});}
+function serializeForCap(v){
+  if(v instanceof Blob)return blobToB64(v).then(function(b){return {t:'blob',m:v.type,b:b};});
+  if(Array.isArray(v)&&v.some(function(x){return x instanceof Blob;})){
+    return Promise.all(v.filter(function(x){return x instanceof Blob;}).map(function(x){
+      return blobToB64(x).then(function(b){return {m:x.type,b:b};});
+    })).then(function(items){return {t:'blobs',i:items};});
+  }
+  try{return Promise.resolve({t:'json',v:JSON.parse(JSON.stringify(v))});}catch(e){return Promise.reject(e);}
+}
+function deserializeFromCap(o){
+  if(!o)return null;
+  if(o.t==='blob')return b64ToBlob(o.b,o.m);
+  if(o.t==='blobs')return (o.i||[]).map(function(x){return b64ToBlob(x.b,x.m);});
+  if(o.t==='json')return o.v;
+  return null;
+}
+function capMirrorSet(k,v){
+  if(!isCapacitorApp()||!shouldMirrorKey(k))return Promise.resolve();
+  var Fs=capFilesystem();if(!Fs)return Promise.resolve();
+  return serializeForCap(v).then(function(o){
+    return Fs.writeFile({path:capKeyFile(k),data:JSON.stringify(o),directory:'DATA',encoding:'utf8',recursive:true});
+  }).catch(function(){});
+}
+function capMirrorDel(k){
+  if(!isCapacitorApp()||!shouldMirrorKey(k))return;
+  var Fs=capFilesystem();if(!Fs)return;
+  Fs.deleteFile({path:capKeyFile(k),directory:'DATA'}).catch(function(){});
+}
+function capMirrorGet(k){
+  if(!isCapacitorApp()||!shouldMirrorKey(k))return Promise.resolve(null);
+  var Fs=capFilesystem();if(!Fs)return Promise.resolve(null);
+  return Fs.readFile({path:capKeyFile(k),directory:'DATA',encoding:'utf8'}).then(function(r){
+    try{return deserializeFromCap(JSON.parse(r.data));}catch(e){return null;}
+  }).catch(function(){return null;});
+}
+function idbSet(k,v){capMirrorSet(k,v);return idbOpen().then(function(db){return new Promise(function(res){
   var t=db.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=function(){res();};});});}
 function idbGet(k){return idbOpen().then(function(db){return new Promise(function(res){
-  var t=db.transaction('kv','readonly');var r=t.objectStore('kv').get(k);r.onsuccess=function(){res(r.result);};r.onerror=function(){res(null);};});}).catch(function(){return null;});}
-function idbDel(k){return idbOpen().then(function(db){return new Promise(function(res){
+  var t=db.transaction('kv','readonly');var r=t.objectStore('kv').get(k);r.onsuccess=function(){res(r.result);};r.onerror=function(){res(null);};});}).then(function(r){
+  if(r!=null)return r;
+  return capMirrorGet(k).then(function(v){
+    if(v!=null)idbOpen().then(function(db){var t=db.transaction('kv','readwrite');t.objectStore('kv').put(v,k);}).catch(function(){});
+    return v==null?null:v;
+  });
+}).catch(function(){return capMirrorGet(k);});}
+function idbDel(k){capMirrorDel(k);return idbOpen().then(function(db){return new Promise(function(res){
   var t=db.transaction('kv','readwrite');t.objectStore('kv').delete(k);t.oncomplete=function(){res();};});}).catch(function(){});}
 function idbKeys(){return idbOpen().then(function(db){return new Promise(function(res){
   var t=db.transaction('kv','readonly');var r=t.objectStore('kv').getAllKeys();r.onsuccess=function(){res(r.result||[]);};r.onerror=function(){res([]);};});}).catch(function(){return [];});}
