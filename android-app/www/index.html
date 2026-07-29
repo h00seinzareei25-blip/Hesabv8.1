@@ -1064,7 +1064,10 @@
 
   <div class="menu-item" id="themeBtn"><span class="mi">🌙</span><div class="txt">تغییر حالت روشن / تاریک</div></div>
   <div class="menu-item" id="installApp" style="display:none;"><span class="mi">📲</span><div class="txt">نصب برنامه روی گوشی<div class="sub">افزودن دفتر حساب به صفحهٔ اصلی اندروید</div></div></div>
-  <div class="menu-item" id="fsConnect" style="display:none;"><span class="mi">📍</span><div class="txt" id="fsConnectTxt">تعیین محل ذخیرهٔ فایل <div class="sub" id="fsConnectSub">اختیاری؛ فقط هنگام درخواست خودت در فایل ذخیره می‌شود</div><button class="fs-off" id="fsDisconnect">قطع اتصال فایل</button></div></div>
+
+  <div class="menu-group-title">پایگاه داده و پشتیبان</div>
+  <div class="menu-item" id="internalDbInfo" style="cursor:default;"><span class="mi">💾</span><div class="txt" id="internalDbTxt">ذخیره داخلی برنامه<div class="sub" id="internalDbSub">دیتابیس اصلی داخل خود برنامه است و خودکار ذخیره می‌شود</div></div></div>
+  <div class="menu-item" id="fsConnect" style="display:none;"><span class="mi">📍</span><div class="txt" id="fsConnectTxt">پشتیبان فایل جدا (اختیاری)<div class="sub" id="fsConnectSub">اصلی داخل برنامه است؛ این فقط کپی اضافه است</div><button class="fs-off" id="fsDisconnect">قطع اتصال فایل</button></div></div>
   <div class="menu-item" id="expJson"><span class="mi">⬇</span><div class="txt">دریافت پشتیبان (JSON)</div></div>
   <div class="menu-item" id="impJson"><span class="mi">⬆</span><div class="txt">بازیابی از فایل پشتیبان</div></div>
   <div class="menu-item" id="expCsv"><span class="mi">▤</span><div class="txt">خروجی اکسل (CSV)</div></div>
@@ -1384,12 +1387,15 @@ var returnToReviewCenter=false;
 var returnToSheetId=null;
 
 function defaultState(){
-  return {books:[{id:1,name:'دفتر اصلی',tx:[],cats:clone(DEFAULT_CATS),budgets:{}}],activeBookId:1,settings:{invoiceTitle:'رسید / فاکتور'}};
+  return {books:[{id:1,name:'دفتر اصلی',tx:[],cats:clone(DEFAULT_CATS),budgets:{}}],activeBookId:1,settings:{invoiceTitle:'رسید / فاکتور'},meta:{savedAt:0,storage:'internal'}};
 }
 function normalizeState(s){
   s=s||defaultState();
   if(!s.settings)s.settings={};
   if(!s.settings.invoiceTitle)s.settings.invoiceTitle='رسید / فاکتور';
+  if(!s.meta||typeof s.meta!=='object')s.meta={};
+  if(typeof s.meta.savedAt!=='number')s.meta.savedAt=0;
+  if(!s.meta.storage)s.meta.storage='internal';
   (s.books||[]).forEach(function(b){
     if(!b.cats)b.cats=clone(DEFAULT_CATS);
     if(!Array.isArray(b.cats.expense))b.cats.expense=clone(DEFAULT_CATS.expense);
@@ -1403,6 +1409,22 @@ function normalizeState(s){
   });
   return s;
 }
+function stateSavedAt(s){
+  if(!s)return 0;
+  if(s.meta&&typeof s.meta.savedAt==='number'&&s.meta.savedAt>0)return s.meta.savedAt;
+  var max=0;(s.books||[]).forEach(function(b){(b.tx||[]).forEach(function(t){
+    if(t.updatedAt&&t.updatedAt>max)max=t.updatedAt;
+    else if(t.createdAt&&t.createdAt>max)max=t.createdAt;
+    else if(t.id&&t.id>max&&t.id<1e13)max=t.id;
+  });});
+  return max;
+}
+function pickNewerState(a,b){
+  a=a?normalizeState(a):null;b=b?normalizeState(b):null;
+  if(!a)return b;if(!b)return a;
+  return stateSavedAt(a)>=stateSavedAt(b)?a:b;
+}
+function countTx(s){return (s&&s.books||[]).reduce(function(n,b){return n+(b.tx||[]).length;},0);}
 function invoiceTitleText(){
   return ((state.settings&&state.settings.invoiceTitle)||'رسید / فاکتور').trim()||'رسید / فاکتور';
 }
@@ -1450,19 +1472,32 @@ function isSpecialCategory(type,cat){
          (type==='expense'&&cat==='برگشت وجه');
 }
 
-/* ---------- save status + fixed-file auto-save ---------- */
+/* ---------- save status + internal DB (primary) + optional backups ---------- */
 var isDirty=false;
+var internalDbReady=false;
+var internalDbMode='browser'; // browser | capacitor
+var INTERNAL_DB_KEY='hesab_internal_db';
+var INTERNAL_FILE='hesab-internal-db.json';
+var writeT=null;
+
+function isCapacitorApp(){
+  try{return !!(window.Capacitor&&Capacitor.isNativePlatform&&Capacitor.isNativePlatform());}catch(e){return false;}
+}
+function capFilesystem(){
+  try{return window.Capacitor&&Capacitor.Plugins&&Capacitor.Plugins.Filesystem;}catch(e){return null;}
+}
 function setDirty(d){
   isDirty=d;
   var el=document.getElementById('saveDot');
   if(!el)return;
   el.classList.toggle('dirty',d);
-  if(fileHandle) el.title=d?'در حال ذخیره در فایل…':'در فایل ذخیره شد ✓';
-  else el.title=d?'دادهٔ جدید بدون پشتیبان — برای ساختن فایل پشتیبان بزن':'پشتیبان به‌روز است ✓';
+  if(d) el.title='در حال ذخیره داخل برنامه…';
+  else el.title='داخل برنامه ذخیره شد ✓';
+  updateInternalDbUI();
 }
 
-var FS_OK=('showSaveFilePicker' in window);
-var fileHandle=null, writeT=null, pendingHandle=null;
+var FS_OK=('showSaveFilePicker' in window)&&!isCapacitorApp();
+var fileHandle=null, pendingHandle=null;
 
 function idbOpen(){return new Promise(function(res,rej){var o=indexedDB.open('hesab_kv',1);
   o.onupgradeneeded=function(){o.result.createObjectStore('kv');};
@@ -1475,6 +1510,54 @@ function idbDel(k){return idbOpen().then(function(db){return new Promise(functio
   var t=db.transaction('kv','readwrite');t.objectStore('kv').delete(k);t.oncomplete=function(){res();};});}).catch(function(){});}
 function idbKeys(){return idbOpen().then(function(db){return new Promise(function(res){
   var t=db.transaction('kv','readonly');var r=t.objectStore('kv').getAllKeys();r.onsuccess=function(){res(r.result||[]);};r.onerror=function(){res([]);};});}).catch(function(){return [];});}
+
+function updateInternalDbUI(){
+  var sub=document.getElementById('internalDbSub');
+  if(!sub)return;
+  var when=state&&state.meta&&state.meta.savedAt?new Date(state.meta.savedAt).toLocaleString('fa-IR'):'هنوز ذخیره نشده';
+  var where=isCapacitorApp()?'حافظهٔ خصوصی اپ اندروید':'حافظهٔ داخلی مرورگر/برنامه';
+  sub.textContent='اصلی: '+where+' · آخرین ذخیره: '+when+(isDirty?' · در حال نوشتن…':' · آماده');
+}
+
+function saveInternalToCapacitor(json){
+  var Fs=capFilesystem();
+  if(!Fs)return Promise.resolve(false);
+  return Fs.writeFile({path:INTERNAL_FILE,data:json,directory:'DATA',encoding:'utf8'})
+    .then(function(){internalDbMode='capacitor';return true;})
+    .catch(function(){return false;});
+}
+function loadInternalFromCapacitor(){
+  var Fs=capFilesystem();
+  if(!Fs)return Promise.resolve(null);
+  return Fs.readFile({path:INTERNAL_FILE,directory:'DATA',encoding:'utf8'})
+    .then(function(r){
+      if(!r||!r.data)return null;
+      var s=JSON.parse(r.data);
+      if(s&&s.books){internalDbMode='capacitor';return normalizeState(s);}
+      return null;
+    }).catch(function(){return null;});
+}
+function saveInternalDb(){
+  try{
+    if(!state.meta)state.meta={};
+    state.meta.savedAt=Date.now();
+    state.meta.storage='internal';
+    var json=JSON.stringify(state);
+    var jobs=[idbSet(INTERNAL_DB_KEY,state)];
+    if(isCapacitorApp())jobs.push(saveInternalToCapacitor(json));
+    return Promise.all(jobs).then(function(){internalDbReady=true;updateInternalDbUI();return true;})
+      .catch(function(){return false;});
+  }catch(e){return Promise.resolve(false);}
+}
+function loadInternalDb(){
+  var jobs=[idbGet(INTERNAL_DB_KEY).then(function(s){return s&&s.books?normalizeState(s):null;})];
+  if(isCapacitorApp())jobs.push(loadInternalFromCapacitor());
+  return Promise.all(jobs).then(function(arr){
+    var best=null;
+    arr.forEach(function(s){best=pickNewerState(best,s);});
+    return best;
+  });
+}
 
 /* ---------- receipt photos (IndexedDB) ---------- */
 function photoKey(id){return 'photo:'+id;}
@@ -1541,52 +1624,98 @@ function compressImage(file,opt,crop){
 
 function persist(){
   (state.books||[]).forEach(ensureDocNumbers);
+  if(!state.meta)state.meta={};
+  state.meta.savedAt=Date.now();
+  state.meta.storage='internal';
   saveLocal();
   setDirty(true);
+  clearTimeout(writeT);
+  writeT=setTimeout(function(){
+    saveInternalDb().then(function(ok){
+      if(fileHandle) return writeFile().then(function(){setDirty(false);}).catch(function(){setDirty(false);});
+      setDirty(false);
+      if(!ok) toast('ذخیره داخلی کامل نشد؛ داده در حافظه سریع مانده است');
+    });
+  },180);
   scheduleCloud();
 }
 function writeFile(){
-  if(!fileHandle)return;
-  fileHandle.createWritable().then(function(w){
+  if(!fileHandle)return Promise.resolve();
+  return fileHandle.createWritable().then(function(w){
     return w.write(JSON.stringify(state,null,2)).then(function(){return w.close();});
-  }).then(function(){setDirty(false);})
-   .catch(function(){ // مجوز فایل از بین رفته؛ فقط وضعیت را غیرفعال کن و خودکار درخواست نده
+  }).then(function(){updateFsUI();})
+   .catch(function(){
     pendingHandle=fileHandle;fileHandle=null;
-    document.getElementById('fsBar').classList.remove('show');updateFsUI();setDirty(true);
+    document.getElementById('fsBar').classList.remove('show');updateFsUI();
+    return Promise.reject();
   });
 }
 function connectFile(){
-  if(!FS_OK){toast('مرورگر از انتخاب فایل پشتیبانی نمی‌کند');return;}
+  if(!FS_OK){toast('در اپ اندروید نیازی به فایل جدا نیست؛ داده داخل خود برنامه ذخیره می‌شود');return;}
   if(pendingHandle){reconnect();return;}
-  window.showSaveFilePicker({suggestedName:'hesab-data.json',
+  window.showSaveFilePicker({suggestedName:'hesab-backup.json',
     types:[{description:'JSON',accept:{'application/json':['.json']}}]})
   .then(function(h){fileHandle=h;pendingHandle=null;return idbSet('fh',h);})
   .then(function(){document.getElementById('fsBar').classList.remove('show');
-    writeFile();updateFsUI();hideSheets();toast('محل فایل تعیین شد ✓ ذخیره فقط با دستور خودت انجام می‌شود');})
+    return writeFile();})
+  .then(function(){updateFsUI();hideSheets();toast('پشتیبان فایل جدا متصل شد (اختیاری) ✓');})
   .catch(function(){});
 }
 function disconnectFile(){
   fileHandle=null;pendingHandle=null;idbDel('fh');
   document.getElementById('fsBar').classList.remove('show');updateFsUI();
-  toast('اتصال فایل حذف شد');
+  toast('پشتیبان فایل جدا قطع شد؛ ذخیره داخلی فعال ماند');
 }
-function loadFromFile(h){
+function applyExternalFileState(s,opts){
+  opts=opts||{};
+  if(!s)return false;
+  var incoming=null;
+  if(s.books&&s.activeBookId)incoming=normalizeState(s);
+  else if(s.tx&&s.cats)incoming=normalizeState({books:[{id:1,name:'دفتر اصلی',tx:s.tx,cats:s.cats}],activeBookId:1});
+  if(!incoming)return false;
+  if(!opts.force){
+    var curAt=stateSavedAt(state),inAt=stateSavedAt(incoming);
+    if(inAt<curAt){toast('فایل قدیمی‌تر از دادهٔ داخل برنامه است؛ نادیده گرفته شد');return false;}
+    if(inAt===curAt&&countTx(incoming)<countTx(state))return false;
+  }
+  state=incoming;saveLocal();saveInternalDb();return true;
+}
+function loadFromFile(h,opts){
   return h.getFile().then(function(f){return f.text();}).then(function(t){
-    if(t){var s=JSON.parse(t);
-      if(s&&s.books&&s.activeBookId){state=normalizeState(s);saveLocal();}
-      else if(s&&s.tx&&s.cats){state=normalizeState({books:[{id:1,name:'دفتر اصلی',tx:s.tx,cats:s.cats}],activeBookId:1});saveLocal();}
-    }
-  }).catch(function(){});
+    if(!t)return false;
+    return applyExternalFileState(JSON.parse(t),opts);
+  }).catch(function(){return false;});
 }
 function initFs(){
   if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){});
   document.getElementById('fsConnect').style.display=FS_OK?'flex':'none';
-  if(!FS_OK){updateFsUI();return;}
-  idbGet('fh').then(function(h){
-    if(!h){updateFsUI();return;}
-    h.queryPermission({mode:'readwrite'}).then(function(p){
-      if(p==='granted'){fileHandle=h;loadFromFile(h).then(function(){render();updateFsUI();setDirty(false);});}
-      else{pendingHandle=h;document.getElementById('fsBar').classList.remove('show');updateFsUI();}
+  updateInternalDbUI();
+  // Primary: merge localStorage with internal DB (IndexedDB / app private file)
+  var localSnap=normalizeState(state);
+  loadInternalDb().then(function(internal){
+    var best=pickNewerState(localSnap,internal);
+    if(best){
+      state=best;
+      saveLocal();
+      return saveInternalDb().then(function(){render();updateInternalDbUI();setDirty(false);});
+    }
+  }).finally(function(){
+    if(!FS_OK){updateFsUI();return;}
+    idbGet('fh').then(function(h){
+      if(!h){updateFsUI();return;}
+      h.queryPermission({mode:'readwrite'}).then(function(p){
+        if(p==='granted'){
+          fileHandle=h;
+          // Never silently overwrite newer internal data with older external file
+          loadFromFile(h,{force:false}).then(function(changed){
+            if(changed)render();
+            updateFsUI();setDirty(false);
+            // Keep external backup in sync with internal primary
+            writeFile().catch(function(){});
+          });
+        }
+        else{pendingHandle=h;document.getElementById('fsBar').classList.remove('show');updateFsUI();}
+      });
     });
   });
 }
@@ -1595,16 +1724,21 @@ function reconnect(){
   pendingHandle.requestPermission({mode:'readwrite'}).then(function(p){
     if(p==='granted'){fileHandle=pendingHandle;pendingHandle=null;
       document.getElementById('fsBar').classList.remove('show');
-      loadFromFile(fileHandle).then(function(){render();updateFsUI();setDirty(false);toast('وصل شد ✓');});}
+      loadFromFile(fileHandle,{force:false}).then(function(changed){
+        if(changed){render();toast('پشتیبان فایل خوانده شد ✓');}
+        else toast('وصل شد؛ دادهٔ داخل برنامه جدیدتر بود');
+        updateFsUI();setDirty(false);writeFile().catch(function(){});
+      });}
   });
 }
 function updateFsUI(){
   var txt=document.getElementById('fsConnectTxt'),sub=document.getElementById('fsConnectSub'),off=document.getElementById('fsDisconnect');
   if(!txt)return;
-  if(!FS_OK){txt.firstChild.textContent='ذخیره در فایل ';sub.textContent='این مرورگر پشتیبانی نمی‌کند (Chrome/Edge لازم است)';if(off)off.style.display='none';return;}
-  if(fileHandle){txt.firstChild.textContent='فایل پشتیبان متصل است ';sub.textContent='فایل: '+(fileHandle.name||'انتخاب‌شده')+' — ذخیره خودکار خاموش است';if(off)off.style.display='block';}
-  else if(pendingHandle){txt.firstChild.textContent='اتصال دوباره به فایل ';sub.textContent='فقط با لمس این گزینه، مجوز فایل دوباره درخواست می‌شود';if(off)off.style.display='none';}
-  else{txt.firstChild.textContent='تعیین محل ذخیرهٔ فایل ';sub.textContent='اختیاری؛ اطلاعات اصلی داخل خود برنامه ذخیره می‌شوند';if(off)off.style.display='none';}
+  if(!FS_OK){txt.firstChild.textContent='پشتیبان فایل جدا ';sub.textContent='در اپ اندروید لازم نیست؛ دیتابیس اصلی داخل خود برنامه است';if(off)off.style.display='none';return;}
+  if(fileHandle){txt.firstChild.textContent='پشتیبان فایل جدا متصل است ';sub.textContent='کپی اضافه از «'+((fileHandle.name)||'فایل')+'» — اصلی همچنان داخل برنامه است';if(off)off.style.display='block';}
+  else if(pendingHandle){txt.firstChild.textContent='اتصال دوباره به پشتیبان فایل ';sub.textContent='اختیاری؛ فقط کپی اضافه می‌سازد';if(off)off.style.display='none';}
+  else{txt.firstChild.textContent='پشتیبان فایل جدا (اختیاری) ';sub.textContent='اصلی داخل برنامه ذخیره می‌شود؛ این فقط کپی اضافه است';if(off)off.style.display='none';}
+  updateInternalDbUI();
 }
 
 /* ---------- debt / personal card ---------- */
@@ -3124,7 +3258,7 @@ function ensureAdvancedBook(b){
     if(t.linkedTxId==null)t.linkedTxId=null;
   });
 }
-state=normalizeState(state);saveLocal();
+state=normalizeState(state);saveLocal();if(typeof saveInternalDb==='function')saveInternalDb();
 
 function accountById(id,book){book=book||activeBook();return (book.accounts||[]).find(function(a){return a.id===id;})||book.accounts[0];}
 function txAccountId(t){return t.accountId||(t.source==='personal'?'personal':'fund');}

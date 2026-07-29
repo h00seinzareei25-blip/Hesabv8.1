@@ -24,9 +24,9 @@ cd android && ./gradlew assembleDebug
 adb install -r android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
-## نکات
+## پایگاه داده
 
-- این APK از نوع **debug** است (قابل نصب مستقیم، بدون انتشار در Play Store).
-- داده‌ها روی دستگاه در WebView ذخیره می‌شوند (localStorage / IndexedDB).
-- دوربین برای عکس رسید نیاز به مجوز دارد.
-- Service Worker در محیط Capacitor غیرفعال است؛ آفلاین بودن از بسته‌بندی محلی فایل‌ها تأمین می‌شود.
+- **اصلی (داخل برنامه):** داده در حافظهٔ خصوصی اپ ذخیره می‌شود (localStorage + IndexedDB + فایل داخلی Capacitor در `Directory.Data`). نیازی به فایل جدا نیست.
+- **اختیاری:** پشتیبان JSON / ZIP / ابری / فایل جدا (فقط مرورگر دسکتاپ)
+
+هر تغییر بلافاصله داخل خود برنامه نوشته می‌شود.
