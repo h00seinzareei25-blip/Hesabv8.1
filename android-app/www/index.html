@@ -67,9 +67,25 @@
   .val.in{color:var(--income);}.val.out{color:var(--expense);}
 
   .debt-banner{display:none;background:var(--gold-soft);color:var(--brand-deep);padding:10px 14px;
-    border-radius:12px;margin:14px 0 -4px;font-size:13px;font-weight:600;align-items:center;justify-content:space-between;gap:10px;}
-  .debt-banner.show{display:flex;}
-  .debt-banner button{background:var(--gold);color:var(--brand-deep);padding:7px 14px;border-radius:9px;font-weight:700;font-size:12.5px;white-space:nowrap;border:none;}
+    justify-content:space-between;align-items:center;gap:10px;font-size:13.5px;font-weight:700;}
+  .debt-banner.show,.debt-banner[style*="flex"]{display:flex;}
+  .debt-banner .debt-main{min-width:0;flex:1;}
+  .debt-banner .debt-sub{display:block;font-size:11px;font-weight:700;opacity:.78;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .debt-banner button{background:var(--gold);color:var(--brand-deep);padding:7px 14px;border-radius:9px;font-weight:700;font-size:12.5px;white-space:nowrap;border:none;flex-shrink:0;}
+  .debt-sum{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px;margin:0 0 14px;}
+  .debt-card{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px;}
+  .debt-card .k{font-size:10px;color:var(--muted);font-weight:800;margin-bottom:4px;}
+  .debt-card .v{font-size:13px;font-weight:900;direction:ltr;text-align:right;}
+  .debt-card .v.out{color:var(--expense);}
+  .debt-card.total{background:var(--gold-soft);border-color:transparent;}
+  .debt-card.total .v{color:var(--brand-deep);}
+  .debt-month{margin:0 0 14px;}
+  .debt-month-head{display:flex;justify-content:space-between;align-items:center;padding:8px 2px 6px;font-size:12.5px;font-weight:900;}
+  .debt-month-head .amt{direction:ltr;color:var(--expense);}
+  .debt-month-head .tag{font-size:10px;font-weight:800;background:var(--gold-soft);color:var(--brand-deep);padding:2px 8px;border-radius:999px;margin-inline-start:6px;}
+  .debt-month .personal-item{padding-inline:2px;}
+  body.dark .debt-card{background:#16211d;border-color:#243830;}
+  body.dark .debt-card.total{background:rgba(212,160,23,.18);}
 
   .filters{
     display:grid;
@@ -980,7 +996,7 @@
   </div>
 
   <div class="debt-banner" id="debtBanner">
-    <span>💳 طلب من: <strong id="debtAmt">۰</strong> تومان</span>
+    <div class="debt-main">💳 طلب من: <strong id="debtAmt">۰</strong> تومان<span class="debt-sub" id="debtSub"></span></div>
     <button id="debtViewBtn">مشاهده</button>
   </div>
 
@@ -1201,6 +1217,11 @@
 <div class="sheet" id="personalSheet">
   <div class="grab"></div>
   <h2 id="personalTitle">طلب من از کارت شخصی</h2>
+  <div class="debt-sum" id="personalSum" style="display:none">
+    <div class="debt-card total"><div class="k">جمع کل طلب</div><div class="v" id="persTotal">۰</div></div>
+    <div class="debt-card"><div class="k">این ماه</div><div class="v out" id="persThis">۰</div></div>
+    <div class="debt-card"><div class="k">ماه‌های قبل</div><div class="v out" id="persPrev">۰</div></div>
+  </div>
   <div id="personalBody"></div>
   <button class="save-btn" id="settleAllBtn" style="background:var(--income);margin-top:16px;display:none;">تسویه همه ✓</button>
 </div>
@@ -1861,10 +1882,39 @@ function updateFsUI(){
 }
 
 /* ---------- debt / personal card ---------- */
-function totalUnsettled(){
-  return activeBook().tx.filter(function(t){
-    return t.type==='expense'&&t.source==='personal'&&!t.settled;
-  }).reduce(function(s,t){return s+t.amount;},0);
+function isPersonalExpense(t){
+  if(!t||t.type!=='expense')return false;
+  if(t.source==='personal')return true;
+  if(t.accountId==='personal')return true;
+  try{
+    var a=typeof accountById==='function'?accountById(t.accountId||'',activeBook()):null;
+    if(a&&a.kind==='personal')return true;
+  }catch(e){}
+  return false;
+}
+function unsettledPersonalTx(book){
+  book=book||activeBook();
+  return (book.tx||[]).filter(function(t){return isPersonalExpense(t)&&!t.settled;});
+}
+function personalDebtStats(book){
+  book=book||activeBook();
+  var items=unsettledPersonalTx(book).slice().sort(function(a,b){
+    if(b.jy!==a.jy)return b.jy-a.jy;
+    if(b.jm!==a.jm)return b.jm-a.jm;
+    return b.jd-a.jd||b.id-a.id;
+  });
+  var vk=jKey(view),thisMonth=0,previous=0,byMonth=[],map={};
+  items.forEach(function(t){
+    var k=jKey({jy:t.jy,jm:t.jm});
+    if(!map[k]){map[k]={key:k,jy:t.jy,jm:t.jm,total:0,items:[]};byMonth.push(map[k]);}
+    map[k].total+=t.amount;map[k].items.push(t);
+    if(k===vk)thisMonth+=t.amount;else previous+=t.amount;
+  });
+  var total=thisMonth+previous;
+  return {items:items,total:total,thisMonth:thisMonth,previous:previous,count:items.length,byMonth:byMonth};
+}
+function totalUnsettled(book){
+  return personalDebtStats(book).total;
 }
 function fundBalance(book){
   book=book||activeBook();var bal=0;
@@ -1877,10 +1927,18 @@ function fundBalance(book){
   return bal;
 }
 function renderDebtBanner(){
-  var total=totalUnsettled();
+  var st=personalDebtStats();
   var banner=document.getElementById('debtBanner');
-  if(total>0){
-    document.getElementById('debtAmt').textContent=money(total);
+  var sub=document.getElementById('debtSub');
+  if(st.total>0){
+    document.getElementById('debtAmt').textContent=money(st.total);
+    if(sub){
+      var parts=[];
+      if(st.thisMonth>0)parts.push('این ماه '+money(st.thisMonth));
+      if(st.previous>0)parts.push('ماه‌های قبل '+money(st.previous));
+      parts.push(fa(st.count)+' مورد');
+      sub.textContent=parts.join(' · ');
+    }
     banner.style.display='flex';
   }else{
     banner.style.display='none';
@@ -1889,35 +1947,47 @@ function renderDebtBanner(){
 function openPersonal(){
   enterTopLevelSheet('personalSheet',renderPersonalList);
 }
+function renderPersonalItem(t){
+  var d=fa(t.jd)+' '+MONTHS[t.jm-1]+' '+fa(t.jy);
+  return '<div class="personal-item">'+
+    '<div class="personal-info">'+
+      '<div class="personal-desc">'+escapeHtml(t.desc||t.cat)+'</div>'+
+      '<div class="personal-meta">'+escapeHtml(t.cat)+' · '+d+(t.docNo?' · <span dir="ltr">'+escapeHtml(t.docNo)+'</span>':'')+'</div>'+
+    '</div>'+
+    '<div class="personal-right">'+
+      '<div class="personal-amt">−'+money(t.amount)+'</div>'+
+      '<button class="settle-btn" data-id="'+t.id+'">تسویه ✓</button>'+
+    '</div>'+
+  '</div>';
+}
 function renderPersonalList(){
-  var items=activeBook().tx.filter(function(t){
-    return t.type==='expense'&&t.source==='personal'&&!t.settled;
-  }).sort(function(a,b){
-    if(b.jy!==a.jy)return b.jy-a.jy;
-    if(b.jm!==a.jm)return b.jm-a.jm;
-    return b.jd-a.jd||b.id-a.id;
-  });
-  var total=items.reduce(function(s,t){return s+t.amount;},0);
-  document.getElementById('personalTitle').textContent='💳 طلب من: '+money(total)+' تومان';
+  var st=personalDebtStats();
+  document.getElementById('personalTitle').textContent='💳 طلب من: '+money(st.total)+' تومان';
+  var sum=document.getElementById('personalSum');
   var el=document.getElementById('personalBody');
   var btn=document.getElementById('settleAllBtn');
-  if(!items.length){
+  if(!st.count){
+    if(sum)sum.style.display='none';
     el.innerHTML='<div class="empty">همهٔ هزینه‌های کارت شخصی تسویه شده‌اند 🎉</div>';
     btn.style.display='none';
     return;
   }
+  if(sum){
+    sum.style.display='grid';
+    document.getElementById('persTotal').textContent=money(st.total);
+    document.getElementById('persThis').textContent=money(st.thisMonth);
+    document.getElementById('persPrev').textContent=money(st.previous);
+  }
   btn.style.display='block';
-  el.innerHTML=items.map(function(t){
-    var d=fa(t.jd)+' '+MONTHS[t.jm-1]+' '+fa(t.jy);
-    return '<div class="personal-item">'+
-      '<div class="personal-info">'+
-        '<div class="personal-desc">'+escapeHtml(t.desc||t.cat)+'</div>'+
-        '<div class="personal-meta">'+escapeHtml(t.cat)+' · '+d+'</div>'+
-      '</div>'+
-      '<div class="personal-right">'+
-        '<div class="personal-amt">−'+money(t.amount)+'</div>'+
-        '<button class="settle-btn" data-id="'+t.id+'">تسویه ✓</button>'+
-      '</div>'+
+  btn.textContent='تسویه همه ('+fa(st.count)+' مورد · '+money(st.total)+') ✓';
+  var vk=jKey(view);
+  el.innerHTML=st.byMonth.map(function(m){
+    var isCur=m.key===vk;
+    var label=MONTHS[m.jm-1]+' '+fa(m.jy);
+    return '<div class="debt-month" data-mk="'+m.key+'">'+
+      '<div class="debt-month-head"><span>'+label+(isCur?'<span class="tag">ماه جاری</span>':(m.key<vk?'<span class="tag">مانده از قبل</span>':''))+'</span>'+
+      '<span class="amt">−'+money(m.total)+' · '+fa(m.items.length)+' مورد</span></div>'+
+      m.items.map(renderPersonalItem).join('')+
     '</div>';
   }).join('');
   el.querySelectorAll('.settle-btn').forEach(function(btn){
@@ -1951,7 +2021,7 @@ function settleOne(id,from){
 function settleAll(from){
   var tj=todayJ();
   activeBook().tx.forEach(function(t){
-    if(t.type==='expense'&&t.source==='personal'&&!t.settled){t.settled=true;t.settledJ=tj;t.settledFrom=from||'me';}
+    if(isPersonalExpense(t)&&!t.settled){t.settled=true;t.settledJ=tj;t.settledFrom=from||'me';}
   });
   persist();renderPersonalList();render();toast('همه تسویه شدند ✓ ('+(from==='fund'?'از تنخواه':'به من')+')');
 }
@@ -2059,8 +2129,8 @@ function render(){
     html+='<div class="day-group"><div class="day-head"><span class="d">'+fa(d)+' '+MONTHS[view.jm-1]+'</span>'+
       '<span class="s" style="color:'+(net>=0?'var(--income)':'var(--expense)')+'">'+(net>=0?'+':'−')+money(Math.abs(net))+'</span></div><div class="tx-card">';
     items.forEach(function(t){var positive=(t.type==='income'||t.type==='neutral_in'),neutral=(t.type==='neutral_in'||t.type==='neutral_out'),sign=positive?'+':'−';
-      var badge=(t.source==='personal'&&!t.settled)?'<span class="personal-badge">💳</span>':'';
-      var sbadge=(t.source==='personal'&&t.settled)?'<span class="settled-badge" data-sj="'+(t.settledJ?jDateStr(t.settledJ,false):'')+'" data-from="'+(t.settledFrom==='fund'?'از تنخواه':(t.settledFrom==='me'?'به من':''))+'">✓</span>':'';
+      var badge=(isPersonalExpense(t)&&!t.settled)?'<span class="personal-badge">💳</span>':'';
+      var sbadge=(isPersonalExpense(t)&&t.settled)?'<span class="settled-badge" data-sj="'+(t.settledJ?jDateStr(t.settledJ,false):'')+'" data-from="'+(t.settledFrom==='fund'?'از تنخواه':(t.settledFrom==='me'?'به من':''))+'">✓</span>':'';
       var rbadge=t.hasPhoto?'<span class="receipt-badge" data-photo="'+t.id+'">🧾'+(t.photoCount>1?fa(t.photoCount):'')+'</span>':'';
       var invb='<span class="invoice-badge" data-inv="'+t.id+'">📄</span>';
       html+='<div class="tx '+(neutral?'tx-neutral':(positive?'tx-income':'tx-expense'))+'" data-id="'+t.id+'"><div class="ic '+(positive?'in':'out')+'">'+catIcon(t.type,t.cat)+'</div>'+
@@ -3669,6 +3739,9 @@ function ensureAdvancedBook(b){
   if(!Array.isArray(b.receiptInbox))b.receiptInbox=[];
   (b.tx||[]).forEach(function(t){
     if(!t.accountId)t.accountId=t.source==='personal'?'personal':'fund';
+    var acc=(b.accounts||[]).find(function(a){return a.id===t.accountId;});
+    if(acc&&acc.kind==='personal'&&t.type==='expense')t.source='personal';
+    else if(t.source==='personal'&&t.type==='expense'&&!t.accountId)t.accountId='personal';
     if(t.linkedTxId==null)t.linkedTxId=null;
   });
 }
@@ -3898,7 +3971,7 @@ function reviewIssues(){
     if(t.type==='expense'&&t.amount>=1000000&&!t.hasPhoto)issues.push({kind:'photo',severity:'normal',title:'هزینه بزرگ بدون عکس فاکتور',sub:(t.docNo||'بدون شماره')+' · '+(t.desc||t.cat)+' · '+money(t.amount),txId:t.id});
     var key=[t.jy,t.jm,t.jd,t.amount,String(t.desc||'').trim().toLowerCase()].join('|');if(seen[key])issues.push({kind:'duplicate',severity:'high',title:'تراکنش احتمالاً تکراری',sub:(t.docNo||'بدون شماره')+' · '+(t.desc||t.cat)+' · '+money(t.amount),txId:t.id});else seen[key]=t.id;
     if(t.type==='neutral_in'&&neutralRemaining(t,b)>0)issues.push({kind:'neutral',severity:'normal',title:'واریز غیر درآمدی باز',sub:(t.docNo||'بدون شماره')+' · '+(t.desc||t.cat)+' · مانده '+money(neutralRemaining(t,b)),txId:t.id});
-    if(t.type==='expense'&&t.source==='personal'&&!t.settled){
+    if(isPersonalExpense(t)&&!t.settled){
       var age=jcmp(today)-jcmp(t);
       if(age>7)issues.push({kind:'unsettled',severity:'normal',title:'هزینه کارت شخصی تسویه‌نشده',sub:(t.docNo||'بدون شماره')+' · '+(t.desc||t.cat)+' · '+money(t.amount),txId:t.id});
     }
@@ -4041,7 +4114,7 @@ saveTx=async function(){
 delTx=function(){if(!editId)return;var book=activeBook(),idx=book.tx.findIndex(function(x){return x.id===editId;});if(idx<0)return;var tx=book.tx[idx];if(!canEditMonth(tx))return;if(!confirm('این تراکنش حذف شود؟'))return;addAudit('حذف تراکنش',(tx.desc||tx.cat)+' · '+money(tx.amount),tx.id);lastDeleted={bookId:book.id,tx:tx,index:idx};book.tx.splice(idx,1);persist();finishSheetWithContext();showUndo('تراکنش حذف شد');};
 
 var baseSettleOne=settleOne;settleOne=function(id,from){var t=activeBook().tx.find(function(x){return x.id===id;});baseSettleOne(id,from);if(t){addAudit('تسویه کارت شخصی',(t.desc||t.cat)+' · '+money(t.amount),id);persist();}};
-var baseSettleAll=settleAll;settleAll=function(from){var n=activeBook().tx.filter(function(t){return t.type==='expense'&&t.source==='personal'&&!t.settled;}).length;baseSettleAll(from);addAudit('تسویه گروهی',fa(n)+' تراکنش');persist();};
+var baseSettleAll=settleAll;settleAll=function(from){var n=unsettledPersonalTx().length;baseSettleAll(from);addAudit('تسویه گروهی',fa(n)+' تراکنش');persist();};
 
 
 // Keep the two accounting-control categories fixed so their behavior cannot break.
