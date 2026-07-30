@@ -5180,10 +5180,10 @@ function normalizeBankSmsText(s){
 function isOtpSms(text){
   var t=normalizeBankSmsText(text);
   if(!t) return false;
-  // پیامک رمز / OTP / کد ورود — هرگز وارد صف پیشنهاد بانکی نشود
-  if(/(کد\s*تأیید|کد\s*تایید|کد\s*ورود|رمز\s*یکبار|رمز\s*یک\s*بار|رمز\s*پویا|رمز\s*موقت|dynamic\s*password|one[\s-]*time(?:\s*password)?|\botp\b|verification\s*code|auth(?:entication)?\s*code)/i.test(t)) return true;
-  if(/(رمز|کد)\s*[:：]?\s*\d{4,8}\b/.test(t) && !/(واریز|برداشت|مانده|موجودی|خرید|پرداخت|مبلغ)/.test(t)) return true;
-  if(/رمز\s*عبور|password|pin\s*code|ورود به (?:اپ|حساب|همراه)/i.test(t) && !/(واریز|برداشت|مانده|خرید)/.test(t)) return true;
+  // هر پیامکی که «رمز» داشته باشد اصلاً نیاید
+  if(/رمز/.test(t)) return true;
+  if(/(کد\s*تأیید|کد\s*تایید|کد\s*ورود|dynamic\s*password|one[\s-]*time(?:\s*password)?|\botp\b|verification\s*code|auth(?:entication)?\s*code|password|pin\s*code)/i.test(t)) return true;
+  if(/(کد)\s*[:：]?\s*\d{4,8}\b/.test(t) && !/(واریز|برداشت|مانده|موجودی|خرید|پرداخت|مبلغ)/.test(t)) return true;
   return false;
 }
 function parseBankSmsBody(body, unitMode){
@@ -5486,10 +5486,9 @@ function renderBankSmsSheet(){
     return '<div class="advanced-card" id="bankSmsItem'+x.id+'" data-banksms="'+x.id+'"><div class="advanced-card-head"><div class="advanced-card-title">'+(p.type==='income'?'⬇️ واریز':'⬆️ برداشت')+' · '+(p.amount?money(p.amount):'—')+'</div><span class="review-severity urgent">پیشنهاد</span></div>'+
       '<div class="advanced-card-sub">'+escapeHtml(p.desc||'')+' · '+escapeHtml(x.sender||'')+' · '+new Date(x.dateMs||x.createdAt).toLocaleString('fa-IR')+(p.ruleApplied?' · قانون: '+escapeHtml(p.ruleApplied):'')+'</div>'+
       '<div class="bank-raw">'+escapeHtml(x.body||'')+'</div>'+
-      '<div class="advanced-actions"><button data-bsreg="'+x.id+'">ثبت</button><button class="alt" data-bsedit="'+x.id+'">ویرایش و ثبت</button><button class="danger" data-bsrej="'+x.id+'">رد</button></div></div>';
+      '<div class="advanced-actions"><button data-bsreg="'+x.id+'">ثبت</button><button class="danger" data-bsrej="'+x.id+'">رد</button></div></div>';
   }).join('')+'</div>';
-  el.querySelectorAll('[data-bsreg]').forEach(function(btn){ btn.onclick=function(){ confirmBankSms(+btn.dataset.bsreg,false); }; });
-  el.querySelectorAll('[data-bsedit]').forEach(function(btn){ btn.onclick=function(){ confirmBankSms(+btn.dataset.bsedit,true); }; });
+  el.querySelectorAll('[data-bsreg]').forEach(function(btn){ btn.onclick=function(){ confirmBankSms(+btn.dataset.bsreg); }; });
   el.querySelectorAll('[data-bsrej]').forEach(function(btn){ btn.onclick=function(){ rejectBankSms(+btn.dataset.bsrej); }; });
 }
 function highlightBankSmsItem(id){
@@ -5514,44 +5513,27 @@ function learnBankSmsRule(item, cat, accountId, type){
   b.bankSmsRules.unshift({id:Date.now(),contains:contains,cat:cat,accountId:accountId,type:type});
   if(b.bankSmsRules.length>80) b.bankSmsRules.length=80;
 }
-function confirmBankSms(id, editFirst){
+function confirmBankSms(id){
   var b=activeBook(), item=(b.bankSmsInbox||[]).find(function(x){return x.id===id;});
   if(!item||!item.parsed){ toast('پارس پیامک ناقص است'); return; }
   var p=item.parsed;
+  if(!p.amount||p.amount<=0){ toast('مبلغ پیامک خوانده نشد'); return; }
   var dt=item.dateMs?new Date(item.dateMs):new Date();
   var j=g2j(dt.getFullYear(),dt.getMonth()+1,dt.getDate());
-  if(editFirst){
-    rememberCurrentSheetForReturn('bankSmsSheet');
-    window.__keepBankSmsPending=true; openAdd(); window.__keepBankSmsPending=false;
-    setTimeout(function(){
-      setType(p.type==='income'?'income':'expense');
-      var cat=p.cat||(p.type==='income'?'سایر':'سایر');
-      curCat=cat; fillCatGrid();
-      document.getElementById('amountIn').value=fa(group(p.amount));
-      document.getElementById('descIn').value=p.desc||'';
-      fillDateSelects(j);
-      var acc=p.accountId||'bank';
-      renderAccountOptions(acc);
-      window.__pendingBankSmsId=id;
-    },40);
-    return;
-  }
-  // quick register
-  if(!canEditMonth(j)) return;
-  var cat=p.cat||(activeBook().cats[p.type==='income'?'income':'expense']||[]).map(function(c){return c[0];}).filter(function(n){return n!=='برگشت وجه'&&n!=='واریز غیر درآمدی';})[0]||'سایر';
-  var accountId=p.accountId||((b.accounts||[]).some(function(a){return a.id==='bank';})?'bank':'fund');
-  var acc=accountById(accountId)||{id:'fund',kind:'fund'};
-  var source=(p.type==='expense'&&acc.kind==='personal')?'personal':'fund';
-  var finalType=effectiveTxType(p.type,cat);
-  var rec={id:Date.now(),docNo:nextDocNo(b,j.jy,j.jm),type:finalType,cat:cat,desc:p.desc||'تراکنش بانکی',amount:p.amount,jy:j.jy,jm:j.jm,jd:j.jd,source:source,accountId:acc.id,linkedTxId:null,settled:false,hasPhoto:false,photoCount:0,receiptNote:'از پیامک بانک · '+ (item.sender||''),bankSmsFp:item.fp,createdAt:Date.now(),updatedAt:Date.now()};
-  b.tx.push(rec);
-  learnBankSmsRule(item, cat, acc.id, p.type);
-  item.status='accepted'; item.txId=rec.id;
-  markBankSmsSeen(item,'accepted');
-  if(typeof addAudit==='function') addAudit('ثبت از پیامک بانک', rec.desc+' · '+money(rec.amount), rec.id);
-  if(typeof invalidateReviewCache==='function') invalidateReviewCache();
-  persist(); view={jy:rec.jy,jm:rec.jm}; renderBankSmsSheet(); render(); updateMenuBadges();
-  toast('تراکنش از پیامک ثبت شد ✓');
+  // فقط مبلغ (و نوع واریز/برداشت) پر می‌شود؛ عنوان و دسته را خودت کامل کن
+  rememberCurrentSheetForReturn('bankSmsSheet');
+  window.__keepBankSmsPending=true; openAdd(); window.__keepBankSmsPending=false;
+  setTimeout(function(){
+    setType(p.type==='income'?'income':'expense');
+    curCat=null; fillCatGrid();
+    document.getElementById('amountIn').value=fa(group(p.amount));
+    document.getElementById('descIn').value='';
+    fillDateSelects(j);
+    renderAccountOptions((b.accounts||[]).some(function(a){return a.id==='bank';})?'bank':null);
+    window.__pendingBankSmsId=id;
+    try{ document.getElementById('descIn').focus(); }catch(e){}
+    toast('مبلغ از پیامک پر شد — عنوان و دسته را کامل کن');
+  },40);
 }
 // when saving tx from edit flow started by bank sms
 var baseSaveTxBank=typeof saveTx==='function'?saveTx:null;
