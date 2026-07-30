@@ -16,9 +16,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="دفتر حساب">
 <style>
-  @font-face{font-family:'Vazirmatn';src:url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Regular.woff2') format('woff2');font-weight:400;font-display:swap;}
-  @font-face{font-family:'Vazirmatn';src:url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Bold.woff2') format('woff2');font-weight:700;font-display:swap;}
-  @font-face{font-family:'Vazirmatn';src:url('https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/webfonts/Vazirmatn-Black.woff2') format('woff2');font-weight:900;font-display:swap;}
+  @font-face{font-family:'Vazirmatn';src:url('fonts/Vazirmatn-Regular.woff2') format('woff2');font-weight:400;font-display:swap;}
+  @font-face{font-family:'Vazirmatn';src:url('fonts/Vazirmatn-Bold.woff2') format('woff2');font-weight:700;font-display:swap;}
+  @font-face{font-family:'Vazirmatn';src:url('fonts/Vazirmatn-Black.woff2') format('woff2');font-weight:900;font-display:swap;}
 
   :root{
     --bg:#EAEEEC;--surface:#FFFFFF;--ink:#16211D;--muted:#6B7A73;--line:#DCE3DF;
@@ -86,6 +86,20 @@
   .debt-month .personal-item{padding-inline:2px;}
   body.dark .debt-card{background:#16211d;border-color:#243830;}
   body.dark .debt-card.total{background:rgba(212,160,23,.18);}
+  .search-global{display:flex;gap:8px;margin:10px 0 4px;}
+  .search-global input{flex:1;padding:11px 12px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);}
+  .search-hit{padding:11px 4px;border-bottom:1px solid var(--line);}
+  .search-hit .t{font-weight:800;font-size:13px;}
+  .search-hit .m{font-size:11px;color:var(--muted);margin-top:2px;}
+  .transfer-box,.recur-box{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0 14px;}
+  .backup-remind{display:none;background:var(--expense-soft);color:var(--expense);padding:10px 14px;border-radius:12px;margin:10px 0;font-size:12.5px;font-weight:700;align-items:center;justify-content:space-between;gap:8px;}
+  .backup-remind.show{display:flex;}
+  .backup-remind button{background:var(--expense);color:#fff;border:none;border-radius:9px;padding:7px 12px;font-weight:800;font-size:12px;white-space:nowrap;}
+  .opening-in{width:100%;margin-top:4px;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--surface);font-size:12px;direction:ltr;text-align:left;font-weight:800;}
+  .settle-amt-row{margin:10px 0 4px;}
+  .settle-amt-row input{width:100%;padding:12px;border-radius:12px;border:1.5px solid var(--line);text-align:center;font-weight:900;direction:ltr;font-size:18px;}
+  .undo-settle{font-size:11px;font-weight:800;color:var(--brand);background:var(--income-soft);padding:4px 9px;border-radius:9px;margin-top:5px;}
+
 
   .filters{
     display:grid;
@@ -1111,7 +1125,9 @@
   <div class="menu-item" id="budgetBtn"><span class="mi">🎯</span><div class="txt">بودجه‌بندی ماهانه<div class="sub">تعیین سقف هزینه برای هر دسته</div></div></div>
 
   <div class="menu-group-title">مدیریت مالی پیشرفته</div>
-  <div class="menu-item" id="accountsBtn"><span class="mi">🏦</span><div class="txt">حساب‌ها و تطبیق مانده<div class="sub">بانک، نقدی، تنخواه و اصلاح اختلاف مانده</div></div></div>
+  <div class="menu-item" id="accountsBtn"><span class="mi">🏦</span><div class="txt">حساب‌ها و تطبیق مانده<div class="sub">بانک، نقدی، تنخواه، انتقال و اصلاح مانده</div></div></div>
+  <div class="menu-item" id="globalSearchBtn"><span class="mi">🔎</span><div class="txt">جستجوی سراسری<div class="sub">بین همهٔ ماه‌ها و دفترها</div></div></div>
+  <div class="menu-item" id="recurringBtn"><span class="mi">🔁</span><div class="txt">تراکنش‌های تکراری ماهانه<div class="sub">اجاره، حقوق، اقساط و ثبت خودکار</div></div></div>
   <div class="menu-item" id="receiptInboxBtn"><span class="mi">📥</span><div class="txt">صندوق ورودی فاکتورها<div class="sub">رسیدهای ثبت‌نشده و تشخیص متن</div></div><span class="feature-count" id="inboxMenuCount" style="display:none">۰</span></div>
   <div class="menu-item" id="reviewBtn"><span class="mi">🔎</span><div class="txt">موارد نیازمند اقدام<div class="sub">تکراری‌ها، مانده منفی، فاکتور ناقص و برگشت باز</div></div><span class="feature-count" id="reviewMenuCount" style="display:none">۰</span></div>
   <div class="menu-item" id="templatesBtn"><span class="mi">⚡</span><div class="txt">قالب‌های ثبت سریع<div class="sub">پر کردن سریع فرم بدون ثبت خودکار</div></div></div>
@@ -1131,6 +1147,7 @@
   <div class="menu-item" id="impJson"><span class="mi">⬆</span><div class="txt">بازیابی از فایل پشتیبان</div></div>
   <div class="menu-item" id="expCsv"><span class="mi">▤</span><div class="txt">خروجی اکسل (Excel)<div class="sub">فایل xlsx مرتب؛ ستون‌های جدا + خلاصه ماهانه و دسته‌ها</div></div></div>
   <div class="menu-item" id="cloudBackup"><span class="mi">☁️</span><div class="txt">پشتیبان ابری سبک (ایتا / تلگرام)<div class="sub" id="cloudSub">ارسال خودکار داده‌ها بدون عکس‌ها</div></div></div>
+  <div class="backup-remind" id="backupRemind"><span id="backupRemindTxt">بیش از ۷ روز از آخرین پشتیبان کامل گذشته</span><button type="button" id="backupRemindBtn">الان بگیر</button></div>
   <div class="menu-item" id="expZip"><span class="mi">📦</span><div class="txt">پشتیبان کامل (با عکس فاکتورها)<div class="sub">یک فایل zip شامل داده‌ها و همهٔ عکس‌ها</div></div></div>
   <div class="menu-item" id="archiveMonth"><span class="mi">🖨️</span><div class="txt">آرشیو/چاپ کل ماه (PDF)<div class="sub">خلاصهٔ آمار + همهٔ فاکتورهای این ماه</div></div></div>
   <div class="menu-item" id="impZip"><span class="mi">📂</span><div class="txt">بازیابی از پشتیبان کامل (zip)</div></div>
@@ -1299,6 +1316,8 @@
 <div class="mini-modal" id="settleModal">
   <div class="mini-card">
     <div class="mini-q">این مبلغ از کجا به تو پرداخت شد؟</div>
+    <div class="settle-amt-row"><input id="settleAmtIn" inputmode="numeric" placeholder="مبلغ تسویه (خالی = کامل)"></div>
+    <div class="closed-note" id="settleAmtHint" style="margin-bottom:10px">می‌توانی بخشی از طلب را تسویه کنی.</div>
     <button class="mini-opt" id="settleFromFund">از تنخواهِ همین دفتر</button>
     <button class="mini-opt" id="settleFromMe">مستقیم به من (نقد / کارت)</button>
     <button class="mini-cancel" id="settleCancel">انصراف</button>
@@ -1311,10 +1330,38 @@
 <div class="sheet" id="accountsSheet">
   <div class="grab"></div><h2>حساب‌ها و تطبیق مانده <button class="add-mini" id="addAccountBtn">＋ حساب</button></h2>
   <div id="accountsList"></div>
+  <div class="section-caption">انتقال بین حساب‌ها</div>
+  <div class="transfer-box">
+    <div class="advanced-form-row"><select id="transferFrom"></select><select id="transferTo"></select></div>
+    <div class="advanced-form-row"><input id="transferAmt" inputmode="numeric" placeholder="مبلغ"><input id="transferDesc" placeholder="بابت؛ مثلاً واریز به بانک"></div>
+    <button class="save-btn" id="transferBtn" style="margin:0">ثبت انتقال</button>
+  </div>
   <div class="section-caption">تطبیق با مانده واقعی</div>
   <div class="advanced-form-row"><select id="reconcileAccount"></select><input id="reconcileActual" inputmode="numeric" placeholder="مانده واقعی (بدهی با علامت منفی)"></div>
   <div class="closed-note" id="reconcileDiff">اختلاف: —</div>
   <button class="save-btn" id="reconcileBtn">ثبت اصلاح مانده</button>
+</div>
+
+<!-- global search -->
+<div class="sheet" id="globalSearchSheet">
+  <div class="grab"></div><h2>جستجوی سراسری</h2>
+  <div class="search-global"><input id="globalSearchIn" placeholder="شماره سند، شرح، دسته، مبلغ…" autocomplete="off"></div>
+  <label class="rep-allbooks"><input type="checkbox" id="globalSearchAllBooks" checked><span>جستجو در همهٔ دفترها</span></label>
+  <div id="globalSearchResults"></div>
+</div>
+
+<!-- recurring -->
+<div class="sheet" id="recurringSheet">
+  <div class="grab"></div><h2>تراکنش‌های تکراری ماهانه</h2>
+  <p class="encrypt-note">در آغاز هر ماه، موارد فعال به‌صورت خودکار ثبت می‌شوند (اگر هنوز برای آن ماه ثبت نشده باشند).</p>
+  <div class="recur-box">
+    <div class="advanced-form-row"><input id="recurName" placeholder="نام؛ مثلاً اجاره"><input id="recurDay" inputmode="numeric" placeholder="روز ماه (۱–۳۱)" style="max-width:110px"></div>
+    <div class="advanced-form-row"><select id="recurType"><option value="expense">هزینه</option><option value="income">درآمد</option></select><select id="recurCat"></select></div>
+    <div class="advanced-form-row"><input id="recurAmt" inputmode="numeric" placeholder="مبلغ"><select id="recurAccount"></select></div>
+    <button class="save-btn" id="addRecurBtn" style="margin:0">افزودن مورد تکراری</button>
+  </div>
+  <div id="recurringList"></div>
+  <button class="save-btn" id="runRecurBtn" style="background:var(--gold);color:var(--brand-deep);margin-top:10px">ثبت موارد این ماه الان</button>
 </div>
 
 <!-- receipt inbox -->
@@ -1882,6 +1929,8 @@ function updateFsUI(){
 }
 
 /* ---------- debt / personal card ---------- */
+function settledPaid(t){return Math.min(t.amount||0, +(t.settledPaid||0) || (t.settled?t.amount:0));}
+function settleRemaining(t){return Math.max(0,(t.amount||0)-settledPaid(t));}
 function isPersonalExpense(t){
   if(!t||t.type!=='expense')return false;
   if(t.source==='personal')return true;
@@ -1894,7 +1943,7 @@ function isPersonalExpense(t){
 }
 function unsettledPersonalTx(book){
   book=book||activeBook();
-  return (book.tx||[]).filter(function(t){return isPersonalExpense(t)&&!t.settled;});
+  return (book.tx||[]).filter(function(t){return isPersonalExpense(t)&&settleRemaining(t)>0;});
 }
 function personalDebtStats(book){
   book=book||activeBook();
@@ -1905,10 +1954,11 @@ function personalDebtStats(book){
   });
   var vk=jKey(view),thisMonth=0,previous=0,byMonth=[],map={};
   items.forEach(function(t){
+    var rem=settleRemaining(t);
     var k=jKey({jy:t.jy,jm:t.jm});
     if(!map[k]){map[k]={key:k,jy:t.jy,jm:t.jm,total:0,items:[]};byMonth.push(map[k]);}
-    map[k].total+=t.amount;map[k].items.push(t);
-    if(k===vk)thisMonth+=t.amount;else previous+=t.amount;
+    map[k].total+=rem;map[k].items.push(t);
+    if(k===vk)thisMonth+=rem;else previous+=rem;
   });
   var total=thisMonth+previous;
   return {items:items,total:total,thisMonth:thisMonth,previous:previous,count:items.length,byMonth:byMonth};
@@ -1917,11 +1967,16 @@ function totalUnsettled(book){
   return personalDebtStats(book).total;
 }
 function fundBalance(book){
-  book=book||activeBook();var bal=0;
+  book=book||activeBook();
+  if(typeof totalLiquidBalance==='function'&&book.accounts&&book.accounts.length)return totalLiquidBalance(book);
+  var bal=0;
   book.tx.forEach(function(t){
     if(t.type==='income'||t.type==='neutral_in')bal+=t.amount;
     else if(t.type==='neutral_out')bal-=t.amount;
-    else if(t.source==='personal'){if(t.settled&&t.settledFrom==='fund')bal-=t.amount;}
+    else if(t.source==='personal'){
+      if(t.settled&&t.settledFrom==='fund'&&!(t.settleDocIds&&t.settleDocIds.length)&&!t.settledPaid)bal-=t.amount;
+      else if(t.settledPaid&&t.settledFrom==='fund'&&!(t.settleDocIds&&t.settleDocIds.length))bal-=(+t.settledPaid||0);
+    }
     else if(t.type==='expense')bal-=t.amount;
   });
   return bal;
@@ -1949,14 +2004,17 @@ function openPersonal(){
 }
 function renderPersonalItem(t){
   var d=fa(t.jd)+' '+MONTHS[t.jm-1]+' '+fa(t.jy);
+  var rem=settleRemaining(t),paid=settledPaid(t);
+  var meta=escapeHtml(t.cat)+' · '+d+(t.docNo?' · <span dir="ltr">'+escapeHtml(t.docNo)+'</span>':'')+(paid>0&&rem>0?' · تسویهٔ جزئی '+money(paid):'');
   return '<div class="personal-item">'+
     '<div class="personal-info">'+
       '<div class="personal-desc">'+escapeHtml(t.desc||t.cat)+'</div>'+
-      '<div class="personal-meta">'+escapeHtml(t.cat)+' · '+d+(t.docNo?' · <span dir="ltr">'+escapeHtml(t.docNo)+'</span>':'')+'</div>'+
+      '<div class="personal-meta">'+meta+'</div>'+
     '</div>'+
     '<div class="personal-right">'+
-      '<div class="personal-amt">−'+money(t.amount)+'</div>'+
+      '<div class="personal-amt">−'+money(rem)+'</div>'+
       '<button class="settle-btn" data-id="'+t.id+'">تسویه ✓</button>'+
+      (paid>0?'<button class="undo-settle" data-undo="'+t.id+'">لغو تسویه</button>':'')+
     '</div>'+
   '</div>';
 }
@@ -1993,37 +2051,92 @@ function renderPersonalList(){
   el.querySelectorAll('.settle-btn').forEach(function(btn){
     btn.onclick=function(){askSettle('one',+btn.dataset.id);};
   });
+  el.querySelectorAll('[data-undo]').forEach(function(btn){
+    btn.onclick=function(){undoSettle(+btn.dataset.undo);};
+  });
 }
 var settleTarget={mode:'one',id:null};
-function askSettle(mode,id){settleTarget={mode:mode,id:id};showFullOverlay('settleModal');}
+function askSettle(mode,id){
+  settleTarget={mode:mode,id:id};
+  var inp=document.getElementById('settleAmtIn'),hint=document.getElementById('settleAmtHint');
+  if(inp)inp.value='';
+  if(mode==='one'){
+    var t=activeBook().tx.find(function(x){return x.id===id;});
+    var rem=t?settleRemaining(t):0;
+    if(hint)hint.textContent='مانده قابل تسویه: '+money(rem)+' تومان — خالی بگذاری یعنی کامل';
+    if(inp)inp.placeholder=money(rem);
+  }else{
+    if(hint)hint.textContent='تسویه همه: مبلغ ورودی نادیده گرفته می‌شود و همهٔ موارد کامل تسویه می‌شوند.';
+  }
+  showFullOverlay('settleModal');
+}
 function closeSettleModal(){document.getElementById('settleModal').classList.remove('show');if(!appBackHandling&&appNavDepth>0)appNavDepth--;}
+function createSettleDoc(tx,amount,from){
+  if(from!=='fund'||!amount)return null;
+  var b=activeBook(),j=todayJ(),fundAcc=(b.accounts||[]).find(function(a){return a.kind==='fund';});
+  var rec={id:Date.now()+Math.floor(Math.random()*999),docNo:nextDocNo(b,j.jy,j.jm),type:'neutral_out',cat:'برگشت وجه',
+    desc:'تسویه طلب کارت شخصی · '+(tx.desc||tx.cat||''),amount:amount,jy:j.jy,jm:j.jm,jd:j.jd,
+    source:'fund',accountId:fundAcc?fundAcc.id:'fund',linkedTxId:tx.id,settleOf:tx.id,settled:false,hasPhoto:false,photoCount:0,
+    receiptNote:'سند خودکار تسویه از تنخواه',createdAt:Date.now(),updatedAt:Date.now()};
+  b.tx.push(rec);
+  tx.settleDocIds=(tx.settleDocIds||[]).concat([rec.id]);
+  return rec;
+}
+function applySettleAmount(tx,amount,from){
+  amount=Math.min(amount,settleRemaining(tx));
+  if(amount<=0)return 0;
+  createSettleDoc(tx,amount,from);
+  tx.settledPaid=settledPaid(tx)+amount;
+  tx.settledFrom=from||'me';
+  tx.settledJ=todayJ();
+  tx.settled=(tx.settledPaid>=tx.amount);
+  if(!tx.source)tx.source='personal';
+  return amount;
+}
 function doSettle(from){
   closeSettleModal();
   if(!settleTarget)return;
-  if(from==='fund'){
-    var amt=0;
-    if(settleTarget.mode==='all')amt=totalUnsettled();
-    else{var t=activeBook().tx.find(function(x){return x.id===settleTarget.id;});amt=t?t.amount:0;}
-    var bal;
-    try{
-      var fundAcc=(activeBook().accounts||[]).find(function(a){return a.kind==='fund';});
-      bal=(fundAcc&&typeof accountBalance==='function')?accountBalance(fundAcc.id):fundBalance();
-    }catch(e){bal=fundBalance();}
-    if(amt>bal&&!confirm('موجودی تنخواه '+money(bal)+' تومان است و با این تسویه ('+money(amt)+' تومان) منفی می‌شود.\nادامه بدهم؟'))return;
+  var custom=0;
+  var inp=document.getElementById('settleAmtIn');
+  if(inp&&inp.value)custom=parseInt(enDigits(inp.value),10)||0;
+  if(settleTarget.mode==='all'){
+    var amt=totalUnsettled();
+    if(from==='fund'){
+      var bal;try{var fundAcc=(activeBook().accounts||[]).find(function(a){return a.kind==='fund';});bal=(fundAcc&&typeof accountBalance==='function')?accountBalance(fundAcc.id):fundBalance();}catch(e){bal=fundBalance();}
+      if(amt>bal&&!confirm('موجودی تنخواه '+money(bal)+' تومان است و با این تسویه ('+money(amt)+' تومان) منفی می‌شود.\nادامه بدهم؟'))return;
+    }
+    settleAll(from);return;
   }
-  if(settleTarget.mode==='all')settleAll(from);else settleOne(settleTarget.id,from);
+  var t=activeBook().tx.find(function(x){return x.id===settleTarget.id;});if(!t)return;
+  var rem=settleRemaining(t);var pay=custom>0?Math.min(custom,rem):rem;
+  if(pay<=0){toast('مبلغی برای تسویه نمانده');return;}
+  if(from==='fund'){
+    var bal2;try{var fa2=(activeBook().accounts||[]).find(function(a){return a.kind==='fund';});bal2=(fa2&&typeof accountBalance==='function')?accountBalance(fa2.id):fundBalance();}catch(e){bal2=fundBalance();}
+    if(pay>bal2&&!confirm('موجودی تنخواه '+money(bal2)+' تومان است و با این تسویه منفی می‌شود.\nادامه بدهم؟'))return;
+  }
+  applySettleAmount(t,pay,from);
+  if(typeof addAudit==='function')addAudit('تسویه کارت شخصی',(t.desc||t.cat)+' · '+money(pay)+(t.settled?' (کامل)':' (جزئی)'),t.id);
+  persist();renderPersonalList();renderDebtBanner();render();
+  toast((t.settled?'تسویه کامل':'تسویه جزئی')+' ✓ ('+(from==='fund'?'از تنخواه':'به من')+')');
 }
 function settleOne(id,from){
   var tx=activeBook().tx.find(function(t){return t.id===id;});
-  if(tx){tx.settled=true;tx.settledJ=todayJ();tx.settledFrom=from||'me';persist();renderPersonalList();renderDebtBanner();render();
-    toast('تسویه شد ✓ ('+(from==='fund'?'از تنخواه':'به من')+')');}
+  if(!tx)return;applySettleAmount(tx,settleRemaining(tx),from||'me');
+  persist();renderPersonalList();renderDebtBanner();render();
+  toast('تسویه شد ✓ ('+(from==='fund'?'از تنخواه':'به من')+')');
 }
 function settleAll(from){
-  var tj=todayJ();
-  activeBook().tx.forEach(function(t){
-    if(isPersonalExpense(t)&&!t.settled){t.settled=true;t.settledJ=tj;t.settledFrom=from||'me';}
-  });
-  persist();renderPersonalList();render();toast('همه تسویه شدند ✓ ('+(from==='fund'?'از تنخواه':'به من')+')');
+  unsettledPersonalTx().forEach(function(t){applySettleAmount(t,settleRemaining(t),from||'me');});
+  persist();renderPersonalList();renderDebtBanner();render();toast('همه تسویه شدند ✓ ('+(from==='fund'?'از تنخواه':'به من')+')');
+}
+function undoSettle(id){
+  var b=activeBook(),tx=b.tx.find(function(t){return t.id===id;});if(!tx)return;
+  if(!confirm('تسویه این مورد لغو شود؟ سندهای تسویهٔ مرتبط از تنخواه هم حذف می‌شوند.'))return;
+  var docs=tx.settleDocIds||[];
+  b.tx=b.tx.filter(function(t){return docs.indexOf(t.id)<0 && !(t.settleOf===tx.id);});
+  tx.settled=false;tx.settledPaid=0;tx.settledFrom=null;tx.settledJ=null;tx.settleDocIds=[];
+  if(typeof addAudit==='function')addAudit('لغو تسویه',(tx.desc||tx.cat)+' · '+money(tx.amount),tx.id);
+  persist();renderPersonalList();renderDebtBanner();render();toast('تسویه لغو شد');
 }
 
 /* ---------- book manager ---------- */
@@ -2054,10 +2167,12 @@ function renderBookList(){
     if(del)del.onclick=function(){
       if(state.books.length<=1)return;
       var bk=state.books.find(function(x){return x.id===id;});
-      if(confirm('دفتر «'+(bk?bk.name:'')+'» با همهٔ تراکنش‌هایش حذف شود؟')){
-        state.books=state.books.filter(function(x){return x.id!==id;});
-        if(state.activeBookId===id)state.activeBookId=state.books[0].id;
-        persist();renderBookList();render();
+      if(confirm('دفتر «'+(bk?bk.name:'')+'» با همهٔ تراکنش‌ها و عکس‌هایش حذف شود؟')){
+        purgeBookMedia(bk||{tx:[]}).then(function(){
+          state.books=state.books.filter(function(x){return x.id!==id;});
+          if(state.activeBookId===id)state.activeBookId=state.books[0].id;
+          persist();renderBookList();render();
+        });
       }
     };
   });
@@ -3533,12 +3648,40 @@ function download(blob,name){
   }
   var a=document.createElement('a'),url=URL.createObjectURL(blob);
   a.href=url;a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(url);a.remove();},100);}
+function collectTxIds(books){
+  var ids={};(books||[]).forEach(function(b){(b.tx||[]).forEach(function(t){ids[String(t.id)]=true;});(b.receiptInbox||[]).forEach(function(x){ids['inbox:'+x.id]=true;});});
+  return ids;
+}
+function purgeOrphanMedia(keepIds){
+  keepIds=keepIds||{};
+  return idbKeys().then(function(keys){
+    var jobs=[];
+    keys.forEach(function(k){
+      k=String(k);
+      if(k.indexOf('photo:')===0){var id=k.slice(6);if(!keepIds[id])jobs.push(idbDel(k));}
+      else if(k.indexOf('photos:')===0){var id2=k.slice(7);if(!keepIds[id2])jobs.push(idbDel(k));}
+      else if(k.indexOf('invoice:')===0){var id3=k.slice(8);if(!keepIds[id3])jobs.push(idbDel(k));}
+      else if(k.indexOf('inboxPhoto:')===0){var id4=k.slice(11);if(!keepIds['inbox:'+id4])jobs.push(idbDel(k));}
+    });
+    return Promise.all(jobs);
+  });
+}
+function purgeBookMedia(book){
+  var ids=(book.tx||[]).map(function(t){return t.id;});
+  var inbox=(book.receiptInbox||[]).map(function(x){return x.id;});
+  return Promise.all(ids.map(function(id){return Promise.all([photoDelAll(id),idbDel('invoice:'+id)]);})
+    .concat(inbox.map(function(id){return idbDel(inboxPhotoKey?inboxPhotoKey(id):('inboxPhoto:'+id));})));
+}
 function importJson(file){var r=new FileReader();r.onload=function(){try{var p=JSON.parse(r.result);
   if(p&&p.books&&p.activeBookId){state=normalizeState(p);}
   else if(Array.isArray(p)){state=normalizeState({books:[{id:1,name:'دفتر اصلی',tx:p.filter(function(t){return t&&t.amount;}),cats:clone(DEFAULT_CATS)}],activeBookId:1});}
   else if(p&&p.tx){state=normalizeState({books:[{id:1,name:'دفتر اصلی',tx:p.tx,cats:(p.cats||clone(DEFAULT_CATS))}],activeBookId:1});}
   else throw 0;
-  persist();hideSheets();render();setDirty(false);toast('بازیابی شد ✓');}catch(e){toast('فایل معتبر نیست');}};r.readAsText(file);}
+  // JSON بدون عکس است؛ رسانه‌های یتیم را پاک کن تا به id جدید نچسبند
+  purgeOrphanMedia(collectTxIds(state.books)).then(function(){
+    persist();hideSheets();render();setDirty(false);toast('بازیابی شد ✓ (عکس‌ها در JSON نیستند)');
+  });
+}catch(e){toast('فایل معتبر نیست');}};r.readAsText(file);}
 
 /* ---------- cloud backup (Eitaa / Telegram) ---------- */
 var cloudCfg={provider:'eitaa',token:'',chat:'',auto:false,autoIntervalH:24,lastAutoAt:0};
@@ -3679,8 +3822,11 @@ document.getElementById('cloudSave').onclick=function(){readCloudInputs();saveCl
 document.getElementById('cloudSendNow').onclick=function(){readCloudInputs();saveCloudCfg();updateCloudMenuSub();toast('در حال ارسال…');sendCloud(true);};
 document.getElementById('impJson').onclick=function(){document.getElementById('fileIn').click();};
 document.getElementById('fileIn').onchange=function(e){if(e.target.files[0])importJson(e.target.files[0]);e.target.value='';};
-document.getElementById('clearAll').onclick=function(){if(confirm('همهٔ تراکنش‌های این دفتر پاک شوند؟ این کار قابل بازگشت نیست.'))
-  {activeBook().tx=[];persist();hideSheets();render();toast('پاک شد');}};
+document.getElementById('clearAll').onclick=function(){if(confirm('همهٔ تراکنش‌های این دفتر پاک شوند؟ عکس‌ها و فاکتورهای همین دفتر هم حذف می‌شوند.')){
+  var book=activeBook();purgeBookMedia(book).then(function(){
+    book.tx=[];if(book.receiptInbox)book.receiptInbox=[];persist();hideSheets();render();toast('پاک شد');
+  });
+}};
 document.getElementById('bookNameBtn').onclick=openBooks;
 document.getElementById('addBookBtn').onclick=addNewBook;
 document.getElementById('debtViewBtn').onclick=openPersonal;
@@ -3720,6 +3866,7 @@ normalizeState=function(s){
   s=baseNormalizeState(s);
   if(!s.settings)s.settings={};
   if(typeof s.settings.monthPin!=='string')s.settings.monthPin='';
+  if(typeof s.settings.monthPinHash!=='string')s.settings.monthPinHash='';
   (s.books||[]).forEach(ensureAdvancedBook);
   return s;
 };
@@ -3758,8 +3905,12 @@ function accountBalance(id,book){
       if(t.type==='income'||t.type==='neutral_in')bal+=t.amount;
       else if(t.type==='expense'||t.type==='neutral_out')bal-=t.amount;
     }
-    if(a.kind==='fund'&&t.type==='expense'&&t.source==='personal'&&t.settled&&t.settledFrom==='fund')bal-=t.amount;
-    if(a.kind==='personal'&&aid===id&&t.type==='expense'&&t.settled)bal+=t.amount;
+    // سازگاری با تسویه‌های قدیمی بدون سند: فقط وقتی settleDoc/settleOf نباشد
+    if(a.kind==='fund'&&t.type==='expense'&&t.source==='personal'&&t.settled&&t.settledFrom==='fund'&&!(t.settleDocIds&&t.settleDocIds.length)&&!t.settledPaid)bal-=t.amount;
+    if(a.kind==='personal'&&aid===id&&t.type==='expense'){
+      var paid=typeof settledPaid==='function'?settledPaid(t):(t.settled?t.amount:0);
+      bal+=paid;
+    }
   });
   return bal;
 }
@@ -4201,6 +4352,346 @@ render();
 
   setInstallVisibility(false);
 })();
+
+
+/* ===== Product upgrades: transfer, search, opening, secure cfg, backup remind, recurring ===== */
+function fillTransferSelectors(){
+  var b=activeBook(),arr=(b.accounts||[]).filter(function(a){return a.kind!=='personal';});
+  var f=document.getElementById('transferFrom'),t=document.getElementById('transferTo');
+  if(!f||!t)return;
+  var opts=arr.map(function(a){return '<option value="'+a.id+'">'+a.icon+' '+escapeHtml(a.name)+' · '+money(accountBalance(a.id))+'</option>';}).join('');
+  f.innerHTML=opts;t.innerHTML=opts;
+  if(arr.length>1){f.value=arr[0].id;t.value=arr[1].id;}
+}
+function doTransfer(){
+  var b=activeBook(),fromId=document.getElementById('transferFrom').value,toId=document.getElementById('transferTo').value;
+  var amt=parseInt(enDigits(document.getElementById('transferAmt').value),10)||0;
+  var desc=(document.getElementById('transferDesc').value||'').trim()||'انتقال بین حساب‌ها';
+  if(!fromId||!toId||fromId===toId){toast('دو حساب متفاوت انتخاب کن');return;}
+  if(amt<=0){toast('مبلغ معتبر نیست');return;}
+  var j=todayJ();if(!canEditMonth(j))return;
+  var fromA=accountById(fromId),toA=accountById(toId);
+  var groupId='tr'+Date.now();
+  var out={id:Date.now(),docNo:nextDocNo(b,j.jy,j.jm),type:'neutral_out',cat:'برگشت وجه',desc:desc+' (از '+fromA.name+' به '+toA.name+')',
+    amount:amt,jy:j.jy,jm:j.jm,jd:j.jd,source:'fund',accountId:fromId,linkedTxId:null,transferGroup:groupId,settled:false,hasPhoto:false,photoCount:0,createdAt:Date.now(),updatedAt:Date.now()};
+  var inn={id:Date.now()+1,docNo:nextDocNo(b,j.jy,j.jm),type:'neutral_in',cat:'واریز غیر درآمدی',desc:desc+' (از '+fromA.name+' به '+toA.name+')',
+    amount:amt,jy:j.jy,jm:j.jm,jd:j.jd,source:'fund',accountId:toId,linkedTxId:null,transferGroup:groupId,settled:false,hasPhoto:false,photoCount:0,createdAt:Date.now(),updatedAt:Date.now()};
+  b.tx.push(out,inn);addAudit('انتقال حساب',fromA.name+' → '+toA.name+' · '+money(amt),out.id);
+  persist();document.getElementById('transferAmt').value='';document.getElementById('transferDesc').value='';
+  renderAccounts();fillTransferSelectors();render();toast('انتقال ثبت شد ✓');
+}
+
+var baseRenderAccounts=renderAccounts;
+renderAccounts=function(){
+  baseRenderAccounts();
+  fillTransferSelectors();
+  var b=activeBook(),el=document.getElementById('accountsList');
+  // inject opening editors
+  el.querySelectorAll('.account-row').forEach(function(row){
+    var id=row.dataset.aid,a=accountById(id);if(!a)return;
+    if(row.querySelector('.opening-in'))return;
+    var sub=row.querySelector('.advanced-card-sub');
+    if(sub){
+      sub.innerHTML='مانده آغازین: <input class="opening-in" data-opening="'+id+'" inputmode="numeric" value="'+(a.opening?fa(group(a.opening)):'')+'" placeholder="۰">';
+    }
+  });
+  el.querySelectorAll('[data-opening]').forEach(function(inp){
+    inp.onchange=function(){
+      var a=accountById(inp.dataset.opening);if(!a)return;
+      var v=parseInt(enDigits(inp.value),10);if(!isFinite(v))v=0;
+      a.opening=v;addAudit('مانده آغازین',a.name+' ← '+money(v));persist();renderAccounts();render();toast('مانده آغازین ذخیره شد');
+    };
+    inp.oninput=function(e){var raw=enDigits(e.target.value);e.target.value=raw?fa(group(raw)):'';};
+  });
+};
+
+function openGlobalSearch(){enterManagedSheet('globalSearchSheet',function(){document.getElementById('globalSearchIn').value='';renderGlobalSearch();setTimeout(function(){document.getElementById('globalSearchIn').focus();},200);});}
+function renderGlobalSearch(){
+  var q=faAware((document.getElementById('globalSearchIn').value||'').trim());
+  var all=document.getElementById('globalSearchAllBooks').checked;
+  var books=all?state.books:[activeBook()];
+  var el=document.getElementById('globalSearchResults');
+  if(!q){el.innerHTML='<div class="empty">عبارت جستجو را بنویس.</div>';return;}
+  var hits=[];
+  books.forEach(function(b){(b.tx||[]).forEach(function(t){
+    var searchable=[t.docNo,t.desc,t.cat,t.receiptNote,money(t.amount),String(t.amount),t.type,t.source,fa(t.jy+'/'+t.jm+'/'+t.jd),b.name].join(' ');
+    if(faAware(searchable).indexOf(q)>=0)hits.push({t:t,book:b});
+  });});
+  hits.sort(function(a,b){return jcmp(b.t)-jcmp(a.t)||b.t.id-a.t.id;});
+  if(!hits.length){el.innerHTML='<div class="empty">موردی پیدا نشد.</div>';return;}
+  el.innerHTML='<div class="closed-note">'+fa(hits.length)+' نتیجه</div>'+hits.slice(0,200).map(function(h){
+    var t=h.t,sign=(t.type==='income'||t.type==='neutral_in')?'+':'−';
+    return '<div class="search-hit" data-bid="'+h.book.id+'" data-tid="'+t.id+'"><div class="t">'+escapeHtml(t.desc||t.cat)+' <span style="float:left;direction:ltr;color:'+(sign==='+'?'var(--income)':'var(--expense)')+'">'+sign+money(t.amount)+'</span></div>'+
+      '<div class="m">'+escapeHtml(h.book.name)+' · '+jDateStr(t,false)+' · '+escapeHtml(t.cat||'')+(t.docNo?' · <span dir="ltr">'+escapeHtml(t.docNo)+'</span>':'')+'</div></div>';
+  }).join('');
+  el.querySelectorAll('.search-hit').forEach(function(row){
+    row.onclick=function(){
+      var bid=+row.dataset.bid,tid=+row.dataset.tid;
+      if(state.activeBookId!==bid)switchBook(bid);
+      var t=activeBook().tx.find(function(x){return x.id===tid;});
+      if(t){view={jy:t.jy,jm:t.jm};hideSheets();render();openEdit(tid);}
+    };
+  });
+}
+
+/* secure cloud + month pin (sync SHA-256 for canEditMonth) */
+function sha256SyncHex(ascii){
+  function rotr(n,x){return (x>>>n)|(x<<(32-n));}
+  var K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  var bytes=[]; for(var i=0;i<ascii.length;i++) bytes.push(ascii.charCodeAt(i)&255);
+  var l=bytes.length; bytes.push(0x80); while((bytes.length%64)!==56) bytes.push(0);
+  var hi=Math.floor(l/0x20000000), lo=(l*8)>>>0;
+  bytes.push((hi>>>24)&255,(hi>>>16)&255,(hi>>>8)&255,hi&255,(lo>>>24)&255,(lo>>>16)&255,(lo>>>8)&255,lo&255);
+  var h0=0x6a09e667,h1=0xbb67ae85,h2=0x3c6ef372,h3=0xa54ff53a,h4=0x510e527f,h5=0x9b05688c,h6=0x1f83d9ab,h7=0x5be0cd19;
+  for(i=0;i<bytes.length;i+=64){
+    var w=new Array(64),j;
+    for(j=0;j<16;j++) w[j]=(bytes[i+j*4]<<24)|(bytes[i+j*4+1]<<16)|(bytes[i+j*4+2]<<8)|bytes[i+j*4+3];
+    for(j=16;j<64;j++){ var s0=rotr(7,w[j-15])^rotr(18,w[j-15])^(w[j-15]>>>3); var s1=rotr(17,w[j-2])^rotr(19,w[j-2])^(w[j-2]>>>10); w[j]=(w[j-16]+s0+w[j-7]+s1)|0; }
+    var a=h0,b=h1,c=h2,d=h3,e=h4,f=h5,g=h6,h=h7;
+    for(j=0;j<64;j++){
+      var S1=rotr(6,e)^rotr(11,e)^rotr(25,e), ch=(e&f)^((~e)&g), t1=(h+S1+ch+K[j]+w[j])|0;
+      var S0=rotr(2,a)^rotr(13,a)^rotr(22,a), maj=(a&b)^(a&c)^(b&c), t2=(S0+maj)|0;
+      h=g;g=f;f=e;e=(d+t1)|0;d=c;c=b;b=a;a=(t1+t2)|0;
+    }
+    h0=(h0+a)|0;h1=(h1+b)|0;h2=(h2+c)|0;h3=(h3+d)|0;h4=(h4+e)|0;h5=(h5+f)|0;h6=(h6+g)|0;h7=(h7+h)|0;
+  }
+  return [h0,h1,h2,h3,h4,h5,h6,h7].map(function(x){return ('00000000'+(x>>>0).toString(16)).slice(-8);}).join('');
+}
+function hashMonthPin(pin){ return sha256SyncHex('hesab-pin:'+String(pin||'')); }
+function migrateMonthPinIfNeeded(){
+  var legacy=state.settings.monthPin||'';
+  if(legacy){ state.settings.monthPinHash=hashMonthPin(legacy); state.settings.monthPin=''; persist(); }
+}
+migrateMonthPinIfNeeded();
+saveMonthPin=function(){
+  var raw=document.getElementById('monthPinIn').value.trim();
+  if(!raw){ state.settings.monthPin=''; state.settings.monthPinHash=''; persist(); toast('رمز حذف شد'); return; }
+  state.settings.monthPin='';
+  state.settings.monthPinHash=hashMonthPin(raw);
+  document.getElementById('monthPinIn').value='';
+  persist(); toast('رمز به‌صورت امن ذخیره شد');
+};
+var unlockedClosedMonths={};
+canEditMonth=function(j){
+  var b=activeBook(); if(!monthClosed(b,j)) return true;
+  var key=jKey(j);
+  if(unlockedClosedMonths[key]) return true;
+  var hash=state.settings.monthPinHash||'';
+  var legacy=state.settings.monthPin||'';
+  if(!hash&&!legacy) return confirm('این ماه بسته است. فقط برای همین عملیات باز شود؟');
+  var p=prompt('این ماه بسته است. رمز باز کردن را وارد کن:');
+  if(p===null) return false;
+  if(legacy&&p===legacy){
+    state.settings.monthPin=''; state.settings.monthPinHash=hashMonthPin(p); persist();
+    unlockedClosedMonths[key]=true; return true;
+  }
+  if(hash&&hashMonthPin(p)===hash){ unlockedClosedMonths[key]=true; return true; }
+  toast('رمز نادرست است'); return false;
+};
+var baseRenderCloseMonth=renderCloseMonth;
+renderCloseMonth=function(){
+  baseRenderCloseMonth();
+  var inp=document.getElementById('monthPinIn');
+  if(inp){
+    inp.value='';
+    inp.placeholder=state.settings.monthPinHash?'رمز تنظیم شده (برای تغییر، رمز جدید بنویس)':'مثلاً ۱۲۳۴';
+  }
+};
+
+saveCloudCfg=function(){
+  try{
+    var safe={provider:cloudCfg.provider,chat:cloudCfg.chat,auto:!!cloudCfg.auto,autoIntervalH:cloudCfg.autoIntervalH||24,lastAutoAt:cloudCfg.lastAutoAt||0};
+    localStorage.setItem('hesab_cloud',JSON.stringify(safe));
+    if(cloudCfg.token) idbSet('cloud_token',cloudCfg.token); else idbDel('cloud_token');
+  }catch(e){}
+};
+loadCloudCfg=function(){
+  try{
+    var r=localStorage.getItem('hesab_cloud');
+    if(r){
+      var c=JSON.parse(r);
+      if(c&&typeof c==='object'){
+        var legacyTok=c.token||'';
+        delete c.token;
+        cloudCfg=Object.assign(cloudCfg,c);
+        if(legacyTok){ cloudCfg.token=legacyTok; idbSet('cloud_token',legacyTok).then(function(){ saveCloudCfg(); }); }
+      }
+    }
+  }catch(e){}
+  idbGet('cloud_token').then(function(tok){ if(tok) cloudCfg.token=tok; updateCloudMenuSub(); });
+};
+openCloud=function(){
+  enterManagedSheet('cloudSheet',function(){
+    loadCloudCfg();
+    setCloudProvider(cloudCfg.provider||'eitaa');
+    document.getElementById('cloudChat').value=cloudCfg.chat||'';
+    document.getElementById('cloudAuto').checked=!!cloudCfg.auto;
+    document.getElementById('cloudAutoInterval').value=String(cloudIntervalHours());
+    document.getElementById('cloudToken').value=cloudCfg.token||'';
+    idbGet('cloud_token').then(function(tok){
+      if(tok){ cloudCfg.token=tok; document.getElementById('cloudToken').value=tok; }
+    });
+  });
+};
+
+/* backup reminder */
+function markZipBackupDone(){
+  try{ localStorage.setItem('hesab_last_zip_backup',String(Date.now())); }catch(e){}
+  updateBackupRemind();
+}
+function updateBackupRemind(){
+  var el=document.getElementById('backupRemind'), txt=document.getElementById('backupRemindTxt');
+  if(!el) return;
+  var last=parseInt(localStorage.getItem('hesab_last_zip_backup')||'0',10)||0;
+  var age=Date.now()-last;
+  var need=!last||age>7*24*60*60*1000;
+  el.classList.toggle('show',need);
+  if(txt){
+    if(!last) txt.textContent='هنوز پشتیبان کامل (ZIP) نگرفته‌ای — برای حفظ عکس‌ها پیشنهاد می‌شود';
+    else txt.textContent='از آخرین پشتیبان کامل '+fa(Math.floor(age/(24*60*60*1000)))+' روز گذشته';
+  }
+}
+exportFullZip=function(){
+  var enc=new TextEncoder();
+  var files=[{name:'data.json',data:enc.encode(JSON.stringify(state,null,2))}];
+  toast('در حال آماده‌سازی…');
+  idbKeys().then(function(keys){
+    var mkp=keys.filter(function(k){return typeof k==='string'&&k.indexOf('photos:')===0;});
+    var multiIds={}; mkp.forEach(function(k){ multiIds[k.slice(7)]=true; });
+    var pk=keys.filter(function(k){return typeof k==='string'&&k.indexOf('photo:')===0&&!multiIds[k.slice(6)];});
+    var ik=keys.filter(function(k){return typeof k==='string'&&k.indexOf('invoice:')===0;});
+    var multiPhotoTasks=mkp.map(function(k){return idbGet(k).then(function(arr){
+      arr=Array.isArray(arr)?arr:[];
+      return Promise.all(arr.map(function(blob,i){
+        if(!blob||!blob.arrayBuffer)return null;
+        return blob.arrayBuffer().then(function(ab){return {name:'photos/'+k.slice(7)+'-'+(i+1)+'.jpg',data:new Uint8Array(ab)};});
+      }));
+    });});
+    var photoTasks=pk.map(function(k){return idbGet(k).then(function(blob){
+      if(!blob||!blob.arrayBuffer)return null;
+      return blob.arrayBuffer().then(function(ab){return {name:'photos/'+k.slice(6)+'.jpg',data:new Uint8Array(ab)};});
+    });});
+    var invTasks=ik.map(function(k){return idbGet(k).then(function(obj){
+      if(!obj)return null; return {name:'invoices/'+k.slice(8)+'.json',data:enc.encode(JSON.stringify(obj))};
+    });});
+    return Promise.all(multiPhotoTasks.concat(photoTasks).concat(invTasks));
+  }).then(function(arr){
+    var flat=[]; arr.forEach(function(x){ if(Array.isArray(x)) flat=flat.concat(x); else flat.push(x); });
+    var n=0; flat.forEach(function(f){ if(f){ files.push(f); if(f.name.indexOf('photos/')===0) n++; } });
+    var zb=zipStore(files);
+    download(new Blob([zb],{type:'application/zip'}),'پشتیبان-کامل-'+jDateStr(todayJ(),true).replace(/\//g,'')+'.zip');
+    markZipBackupDone();
+    toast('پشتیبان کامل ساخته شد ('+fa(n)+' عکس)'); setDirty(false);
+  }).catch(function(){ toast('خطا در ساخت پشتیبان'); });
+};
+
+/* recurring monthly */
+function ensureRecurring(b){ if(!Array.isArray(b.recurring)) b.recurring=[]; }
+function fillRecurSelectors(){
+  var type=document.getElementById('recurType').value||'expense';
+  var cats=activeBook().cats[type]||[];
+  document.getElementById('recurCat').innerHTML=cats.map(function(c){return '<option value="'+escapeHtml(c[0])+'">'+c[1]+' '+escapeHtml(c[0])+'</option>';}).join('');
+  var accts=(activeBook().accounts||[]).filter(function(a){return type==='income'?a.kind!=='personal':true;});
+  document.getElementById('recurAccount').innerHTML=accts.map(function(a){return '<option value="'+a.id+'">'+a.icon+' '+escapeHtml(a.name)+'</option>';}).join('');
+}
+function openRecurring(){ enterManagedSheet('recurringSheet',function(){ fillRecurSelectors(); renderRecurring(); }); }
+function renderRecurring(){
+  var b=activeBook(); ensureRecurring(b);
+  var el=document.getElementById('recurringList');
+  if(!b.recurring.length){ el.innerHTML='<div class="empty">مورد تکراری تعریف نشده.</div>'; return; }
+  el.innerHTML='<div class="advanced-list">'+b.recurring.map(function(r){
+    return '<div class="advanced-card"><div class="advanced-card-head"><div class="advanced-card-title">'+(r.enabled===false?'⏸ ':'🔁 ')+escapeHtml(r.name)+'</div><span class="review-severity">'+(r.type==='income'?'درآمد':'هزینه')+'</span></div>'+
+      '<div class="advanced-card-sub">روز '+fa(r.day)+' · '+escapeHtml(r.cat)+' · '+money(r.amount)+' · '+escapeHtml((accountById(r.accountId)||{}).name||'')+'</div>'+
+      '<div class="advanced-actions"><button data-rtog="'+r.id+'">'+(r.enabled===false?'فعال‌سازی':'توقف')+'</button><button class="danger" data-rdel="'+r.id+'">حذف</button></div></div>';
+  }).join('')+'</div>';
+  el.querySelectorAll('[data-rtog]').forEach(function(btn){ btn.onclick=function(){ var r=b.recurring.find(function(x){return x.id===+btn.dataset.rtog;}); if(r){ r.enabled=!(r.enabled===false); persist(); renderRecurring(); } }; });
+  el.querySelectorAll('[data-rdel]').forEach(function(btn){ btn.onclick=function(){ b.recurring=b.recurring.filter(function(x){return x.id!==+btn.dataset.rdel;}); persist(); renderRecurring(); }; });
+}
+function addRecurring(){
+  var b=activeBook(); ensureRecurring(b);
+  var name=document.getElementById('recurName').value.trim();
+  var day=parseInt(enDigits(document.getElementById('recurDay').value),10)||1;
+  var type=document.getElementById('recurType').value;
+  var cat=document.getElementById('recurCat').value;
+  var amount=parseInt(enDigits(document.getElementById('recurAmt').value),10)||0;
+  var accountId=document.getElementById('recurAccount').value;
+  if(!name||amount<=0||!cat){ toast('نام، دسته و مبلغ لازم است'); return; }
+  day=Math.max(1,Math.min(31,day));
+  b.recurring.push({id:Date.now(),name:name,day:day,type:type,cat:cat,amount:amount,accountId:accountId,enabled:true,lastPosted:null});
+  addAudit('تکراری ماهانه','افزودن «'+name+'»'); persist();
+  document.getElementById('recurName').value=''; document.getElementById('recurAmt').value='';
+  renderRecurring(); toast('مورد تکراری اضافه شد ✓');
+}
+function runRecurringForView(force){
+  var b=activeBook(); ensureRecurring(b); var key=jKey(view), posted=0;
+  b.recurring.forEach(function(r){
+    if(r.enabled===false) return;
+    if(!force && r.lastPosted===key) return;
+    var exists=(b.tx||[]).some(function(t){ return t.recurId===r.id && jKey(t)===key; });
+    if(exists){ r.lastPosted=key; return; }
+    var len=jMonthLen(view.jy,view.jm), day=Math.min(r.day,len);
+    var acc=accountById(r.accountId)||{id:'fund',kind:'fund'};
+    var source=(r.type==='expense'&&acc.kind==='personal')?'personal':'fund';
+    var finalType=effectiveTxType(r.type,r.cat);
+    var rec={id:Date.now()+Math.floor(Math.random()*9999)+posted,docNo:nextDocNo(b,view.jy,view.jm),type:finalType,cat:r.cat,desc:r.name,
+      amount:r.amount,jy:view.jy,jm:view.jm,jd:day,source:source,accountId:acc.id,recurId:r.id,settled:false,hasPhoto:false,photoCount:0,
+      receiptNote:'ثبت خودکار تکراری ماهانه',createdAt:Date.now(),updatedAt:Date.now()};
+    b.tx.push(rec); r.lastPosted=key; posted++;
+  });
+  if(posted){
+    addAudit('تکراری ماهانه','ثبت '+fa(posted)+' مورد برای '+MONTHS[view.jm-1]+' '+view.jy);
+    persist();
+    if(force){ render(); toast(fa(posted)+' تراکنش تکراری ثبت شد ✓'); }
+    return posted;
+  }
+  if(force) toast('مورد جدیدی برای ثبت نبود');
+  return 0;
+}
+
+document.getElementById('transferBtn').onclick=doTransfer;
+document.getElementById('transferAmt').addEventListener('input',function(e){ var raw=enDigits(e.target.value); e.target.value=raw?fa(group(raw)):''; });
+document.getElementById('globalSearchBtn').onclick=openGlobalSearch;
+document.getElementById('globalSearchIn').oninput=renderGlobalSearch;
+document.getElementById('globalSearchAllBooks').onchange=renderGlobalSearch;
+document.getElementById('recurringBtn').onclick=openRecurring;
+document.getElementById('recurType').onchange=fillRecurSelectors;
+document.getElementById('addRecurBtn').onclick=addRecurring;
+document.getElementById('runRecurBtn').onclick=function(){ runRecurringForView(true); };
+document.getElementById('recurAmt').addEventListener('input',function(e){ var raw=enDigits(e.target.value); e.target.value=raw?fa(group(raw)):''; });
+document.getElementById('backupRemindBtn').onclick=function(){ hideSheets(); exportFullZip(); };
+document.getElementById('settleAmtIn').addEventListener('input',function(e){ var raw=enDigits(e.target.value); e.target.value=raw?fa(group(raw)):''; });
+
+// auto-run recurring quietly BEFORE paint so list includes new rows; never toast/recurse
+var baseRender2=render;
+render=function(){
+  try{ runRecurringForView(false); }catch(e){}
+  baseRender2();
+  updateBackupRemind();
+};
+
+openAccounts=function(){ enterManagedSheet('accountsSheet',function(){ renderAccounts(); fillTransferSelectors(); }); };
+
+document.getElementById('menuBtn').onclick=function(){ updateFsUI(); refreshDbSize(); updateBackupRemind(); enterTopLevelSheet('menuSheet'); };
+
+settleOne=function(id,from){
+  var tx=activeBook().tx.find(function(t){ return t.id===id; });
+  if(!tx) return;
+  applySettleAmount(tx,settleRemaining(tx),from||'me');
+  addAudit('تسویه کارت شخصی',(tx.desc||tx.cat)+' · '+money(settledPaid(tx)),id);
+  persist(); renderPersonalList(); renderDebtBanner(); render();
+  toast('تسویه شد ✓ ('+(from==='fund'?'از تنخواه':'به من')+')');
+};
+settleAll=function(from){
+  var list=unsettledPersonalTx().slice();
+  list.forEach(function(t){ applySettleAmount(t,settleRemaining(t),from||'me'); });
+  addAudit('تسویه گروهی',fa(list.length)+' تراکنش');
+  persist(); renderPersonalList(); renderDebtBanner(); render();
+  toast('همه تسویه شدند ✓ ('+(from==='fund'?'از تنخواه':'به من')+')');
+};
+
+loadCloudCfg();
+updateBackupRemind();
+
 </script>
 
 </body>
