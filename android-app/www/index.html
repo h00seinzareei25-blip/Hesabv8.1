@@ -5151,53 +5151,99 @@ function activeBankSmsMatches(){
   return out;
 }
 function faDigitsToEn(s){return String(s||'').replace(/[۰-۹]/g,function(d){return '۰۱۲۳۴۵۶۷۸۹'.indexOf(d);}).replace(/[٠-٩]/g,function(d){return '٠١٢٣٤٥٦٧٨٩'.indexOf(d);});}
+function normalizeBankSmsText(s){
+  // ي/ك عربی → ی/ک فارسی؛ فاصله‌ها و جداکننده‌های مبلغ
+  return faDigitsToEn(String(s||''))
+    .replace(/\u064a/g,'ی') // Arabic Yeh
+    .replace(/\u0649/g,'ی') // Alef Maqsura
+    .replace(/\u0643/g,'ک') // Arabic Kaf
+    .replace(/\u06a9/g,'ک')
+    .replace(/[\u200c\u200f\u202a-\u202e]/g,'')
+    .replace(/[٬]/g,',')
+    .replace(/[：]/g,':');
+}
 function parseBankSmsBody(body, unitMode){
-  body=faDigitsToEn(String(body||''));
-  var lower=body.toLowerCase();
+  body=normalizeBankSmsText(body);
   var skip=/رمز|otp|one[- ]?time|ورود|login|code\s*:|کد\s*[:：]|فعالسازی|فعال‌سازی|اعتبارسنجی/i.test(body);
   if(skip && !/(برداشت|واریز|خرید|پرداخت|مانده|موجودی)/.test(body)) return null;
-  var debit=/برداشت|خرید|پرداخت|کسر|انتقال وجه از|برداشت از|پرداخت قبض|pos|خرید از/.test(body);
-  var credit=/واریز|دریافت|واریز به|دریافتی|شارژ حساب|refund|برگشت وجه به/.test(body);
   if(/ناموفق|مورد تأیید قرار نگرفت|insufficient|عدم کفایت|لغو شد/.test(body)) return null;
-  var type=null;
-  if(debit&&!credit) type='expense';
-  else if(credit&&!debit) type='income';
-  else if(debit) type='expense';
-  else if(credit) type='income';
-  else return null;
-  var amount=0, unit='toman', amountRaw=null;
-  var patterns=[
-    /مبلغ[:\s]*([0-9][0-9,]{2,})/i,
-    /amount[:\s]*([0-9][0-9,]{2,})/i,
-    /([0-9][0-9,]{3,})\s*(ریال|rial|تومان|tomans?)/i,
-    /(?:^|\s)([0-9]{4,})(?:\s|$)/
-  ];
-  for(var i=0;i<patterns.length;i++){
-    var m=body.match(patterns[i]);
-    if(m){ amountRaw=parseInt(String(m[1]).replace(/,/g,''),10); if(m[2]) unit=/ریال|rial/i.test(m[2])?'rial':'toman'; if(amountRaw>0) break; }
+
+  var debit=/برداشت|خرید|پرداخت|کسر|انتقال وجه از|برداشت از|پرداخت قبض|\bpos\b|خرید از/i.test(body);
+  var credit=/واریز|دریافت|واریز به|دریافتی|شارژ حساب|refund|برگشت وجه به/i.test(body);
+  // قالب بانک سپه و مشابه: واریز:100,000ریال / برداشت:50,000ریال
+  var typed = body.match(/(واریز|برداشت|خرید|پرداخت)\s*[:：]?\s*([0-9][0-9,]{2,})\s*(ریال|rial|تومان|tomans?)?/i);
+  var type=null, amountRaw=null, unit='toman';
+  if(typed){
+    var kind=typed[1];
+    if(/واریز|دریافت/i.test(kind)) type='income';
+    else type='expense';
+    amountRaw=parseInt(String(typed[2]).replace(/,/g,''),10);
+    if(typed[3]) unit=/ریال|rial/i.test(typed[3])?'rial':'toman';
+  }
+  if(!type){
+    if(debit&&!credit) type='expense';
+    else if(credit&&!debit) type='income';
+    else if(debit) type='expense';
+    else if(credit) type='income';
+    else return null;
+  }
+  if(!amountRaw){
+    var patterns=[
+      /مبلغ\s*[:：]?\s*([0-9][0-9,]{2,})/i,
+      /amount\s*[:：]?\s*([0-9][0-9,]{2,})/i,
+      // 100,000ریال بدون فاصله (سپه و خیلی از بانک‌ها)
+      /([0-9][0-9,]{2,})\s*(ریال|rial|تومان|tomans?)/i,
+      /(?:^|[\s:])([0-9]{4,})(?=(?:ریال|rial|تومان)|\s|$)/i
+    ];
+    for(var i=0;i<patterns.length;i++){
+      var m=body.match(patterns[i]);
+      if(!m) continue;
+      // اگر الگو مانده/حساب است رد کن
+      var idx=body.indexOf(m[0]);
+      var before=body.slice(Math.max(0,idx-12), idx);
+      if(/مانده|موجودی|حساب/.test(before) && !/واریز|برداشت|خرید|پرداخت|مبلغ/.test(before+m[0])) continue;
+      amountRaw=parseInt(String(m[1]).replace(/,/g,''),10);
+      if(m[2]) unit=/ریال|rial/i.test(m[2])?'rial':'toman';
+      if(amountRaw>0) break;
+    }
   }
   if(!amountRaw||amountRaw<=0) return null;
   if(/ریال|rial/i.test(body)) unit='rial';
-  if(/تومان|toman/i.test(body)) unit='toman';
+  if(/تومان|toman/i.test(body) && !/ریال|rial/i.test(body)) unit='toman';
   if(unitMode==='rial') unit='rial';
   if(unitMode==='toman') unit='toman';
-  amount=unit==='rial'?Math.round(amountRaw/10):amountRaw;
+  // در پیام سپه واحد ریال است
+  var amount=unit==='rial'?Math.round(amountRaw/10):amountRaw;
   if(amount<=0) return null;
+
+  var bank='';
+  var bm=body.match(/بانک\s+([^\n\r]{2,20})/);
+  if(bm) bank=bm[1].split(/\s|حساب|واریز|برداشت|مانده/)[0].trim();
+
   var merchant='';
-  var mm=body.match(/(?:خرید از|پذیرنده|فروشگاه|فروشنده|در)\s*[:：]?\s*([^\n\r]{2,40})/i);
-  if(mm) merchant=mm[1].replace(/موجودی.*$/,'').trim();
+  var mm=body.match(/(?:خرید از|پذیرنده|فروشگاه|فروشنده)\s*[:：]?\s*([^\n\r]{2,40})/i);
+  if(mm) merchant=mm[1].replace(/موجودی.*$|مانده.*$/,'').trim();
+
+  var account='';
+  var am=body.match(/حساب\s*[:：]?\s*([0-9]{6,})/);
+  if(am) account=am[1];
+
   var card='';
   var cm=body.match(/(?:کارت|card)\s*[:：]?\s*[*xX×٫\.]*([0-9]{4})/i)||body.match(/\*{2,}([0-9]{4})/);
   if(cm) card=cm[1];
+
   var descParts=[];
   if(merchant) descParts.push(merchant);
+  else if(bank) descParts.push((type==='income'?'واریز':'برداشت')+' بانک '+bank);
   else descParts.push(type==='income'?'واریز بانکی':'برداشت بانکی');
+  if(account) descParts.push('حساب …'+account.slice(-4));
   if(card) descParts.push('کارت '+card);
-  var confidence=0.55;
-  if(merchant) confidence+=0.15;
-  if(/مبلغ/.test(body)) confidence+=0.1;
-  if(type) confidence+=0.1;
-  return {amount:amount,type:type,unit:unit,amountRaw:amountRaw,desc:descParts.join(' · '),merchant:merchant,card:card,confidence:Math.min(0.98,confidence)};
+
+  var confidence=0.6;
+  if(typed) confidence+=0.2;
+  if(merchant||bank) confidence+=0.1;
+  if(/مبلغ|واریز:|برداشت:/.test(body)) confidence+=0.05;
+  return {amount:amount,type:type,unit:unit,amountRaw:amountRaw,desc:descParts.join(' · '),merchant:merchant,card:card,account:account,bank:bank,confidence:Math.min(0.98,confidence)};
 }
 function bankSmsFingerprint(msg){
   return String(msg.id||'')+'|'+(msg.date||'')+'|'+String(msg.address||'')+'|'+String(msg.body||'').slice(0,120);
@@ -5219,19 +5265,25 @@ function applyBankSmsRules(item){
 }
 
 function looksLikeBankSms(body, address){
-  body=faDigitsToEn(String(body||''));
+  body=normalizeBankSmsText(body);
   var a=String(address||'');
   if(/رمز\s*یکبار|otp|one[- ]?time|کد\s*[:：]\s*\d{4,}/i.test(body) && !/(برداشت|واریز|خرید|مبلغ)/.test(body)) return false;
-  if(/(برداشت|واریز|خرید|پرداخت|موجودی|مانده|ریال|تومان|حساب|کارت)/.test(body) && /(مبلغ|[0-9]{4,})/.test(body)) return true;
-  if(/bank|بانک|mellat|saman|tejarat|saderat|pasargad/i.test(a)) return true;
+  if(/(برداشت|واریز|خرید|پرداخت|موجودی|مانده|ریال|تومان|حساب|کارت|بانک)/.test(body) && /([0-9]{3,}[,]?[0-9]{3,}|مبلغ)/.test(body)) return true;
+  if(/bank|بانک|mellat|saman|tejarat|saderat|pasargad|sepah|سپه/i.test(a+' '+body)) return true;
   return false;
 }
-function upsertBankSmsSuggestion(msg){
+var BANK_SMS_PARSER_VER=2;
+function upsertBankSmsSuggestion(msg, opts){
+  opts=opts||{};
   var b=activeBook(); ensureAdvancedBook(b);
   var fp=bankSmsFingerprint(msg);
-  if(b.bankSmsSeen[fp]||b.bankSmsSeen[String(msg.id)]) return false;
+  var seen=b.bankSmsSeen[fp]||b.bankSmsSeen[String(msg.id)];
+  var alreadyInbox=(b.bankSmsInbox||[]).some(function(x){return x.fp===fp||x.smsId===String(msg.id);});
+  if(alreadyInbox) return false;
+  // اگر قبلاً با پارسر قدیمی fail شده، روی اسکن اجباری دوباره تلاش کن
+  if(seen && !(opts.reparse && seen!==BANK_SMS_PARSER_VER && seen!=='accepted')) return false;
   var parsed=parseBankSmsBody(msg.body, bankSmsCfg().unit);
-  if(!parsed){ b.bankSmsSeen[fp]=1; return false; }
+  if(!parsed){ b.bankSmsSeen[fp]='fail-v1'; return false; }
   // duplicate vs existing txs (same day-ish amount+desc)
   var approxDate=msg.date?new Date(msg.date):new Date();
   var j=g2j(approxDate.getFullYear(),approxDate.getMonth()+1,approxDate.getDate());
@@ -5244,8 +5296,8 @@ function upsertBankSmsSuggestion(msg){
   var item={id:Date.now()+Math.floor(Math.random()*9999),smsId:String(msg.id||''),fp:fp,sender:msg.address||'',body:msg.body||'',dateMs:+msg.date||Date.now(),parsed:parsed,status:'pending',createdAt:Date.now()};
   applyBankSmsRules(item);
   b.bankSmsInbox.unshift(item);
-  b.bankSmsSeen[fp]=1;
-  if(item.smsId) b.bankSmsSeen[item.smsId]=1;
+  b.bankSmsSeen[fp]=BANK_SMS_PARSER_VER;
+  if(item.smsId) b.bankSmsSeen[item.smsId]=BANK_SMS_PARSER_VER;
   if(b.bankSmsInbox.length>200) b.bankSmsInbox.length=200;
   return true;
 }
@@ -5298,7 +5350,7 @@ async function scanBankSms(opts){
       }catch(_e2){}
     }
     var added=0, skipped=0;
-    msgs.forEach(function(m){ if(upsertBankSmsSuggestion(m)) added++; else skipped++; });
+    msgs.forEach(function(m){ if(upsertBankSmsSuggestion(m,{reparse:!!opts.force})) added++; else skipped++; });
     cfg.lastScanAt=Date.now();
     if(typeof invalidateReviewCache==='function') invalidateReviewCache();
     persist(); updateMenuBadges(); renderTodayDashboard();
