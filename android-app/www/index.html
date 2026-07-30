@@ -2598,6 +2598,10 @@ function resetInvoice(){
 }
 function printInvoice(){
   saveInvoice();
+  if(isCapacitorApp()&&curInv){
+    var t=activeBook().tx.find(function(x){return x.id===curInv.txId;});
+    if(t){printHtmlDoc(buildSingleInvoiceHtml(t,curInv.data),'فاکتور-'+(t.docNo||t.id)+'.html');return;}
+  }
   fitInvoiceForA5();
   setTimeout(function(){
     fitInvoiceForA5();
@@ -2615,7 +2619,8 @@ function monthlyArchive(){
   var s=monthSummary();
   if(!s.list.length){toast('این ماه سندی ندارد');return;}
   toast('در حال آماده‌سازی آرشیو…');
-  Promise.all(s.list.map(function(t){
+  var docs=s.list.slice().sort(function(a,b){return (a.jd-b.jd)||(a.id-b.id);});
+  Promise.all(docs.map(function(t){
     return invoiceGet(t.id).then(function(saved){
       var inv=saved||invDefault(t);
       if(!inv.notes&&t.receiptNote)inv.notes=t.receiptNote;
@@ -2624,17 +2629,14 @@ function monthlyArchive(){
       return {t:t,inv:inv};
     });
   })).then(function(arr){
-    var w=window.open('','_blank');
-    if(!w){toast('اجازهٔ باز شدن پنجره را بده');return;}
-    w.document.open();w.document.write(buildArchiveHtml(s,arr));w.document.close();
-    w.focus();setTimeout(function(){try{w.print();}catch(e){}},700);
+    printHtmlDoc(buildArchiveHtml(s,arr),'آرشیو-'+MONTHS[view.jm-1]+'-'+view.jy+'.html');
   }).catch(function(){toast('خطا در ساخت آرشیو');});
 }
 function buildInvoiceSection(inv,t,isLast){
   var items=(inv.items&&inv.items.length?inv.items:[{desc:(t.desc||t.cat||''),amount:t.amount||0}]);
   var rows=items.map(function(it){return '<tr><td>'+escapeHtml(it.desc||'')+'</td><td class="amt">'+fa(group(it.amount||0))+'</td></tr>';}).join('');
   var total=items.reduce(function(a,x){return a+(x.amount||0);},0);
-  var imgs=invReceiptImages(inv);
+  var imgs=invReceiptImages(inv).filter(function(u){return /^data:image\//.test(String(u));});
   var img=imgs.length?'<div class="rcpt"><div class="rlbl">عکس فاکتور / رسید</div>'+imgs.map(function(u){return '<img src="'+u+'">';}).join('')+'</div>':'';
   var note=(inv.notes||t.receiptNote||'').trim();
   var notes=note?'<div class="note"><div class="rlbl">توضیحات</div><div class="ntxt">'+escapeHtml(note)+'</div></div>':'';
@@ -2659,15 +2661,17 @@ function buildArchiveHtml(s,arr){
     '<tr><td>جمع هزینه</td><td class="amt">'+money(s.exp)+'</td></tr>'+
     '<tr><td>مانده (درآمد − هزینه)</td><td class="amt">'+money(s.inc-s.exp)+'</td></tr>'+
     '<tr><td>هزینه با کارت شخصی</td><td class="amt">'+money(s.persExp)+'</td></tr>'+
-    '<tr><td>موجودی تنخواه (کل دفتر)</td><td class="amt">'+money(fundBalance())+'</td></tr>'+
+    '<tr><td>موجودی حساب‌ها (کل دفتر)</td><td class="amt">'+money(fundBalance())+'</td></tr>'+
     '</tbody></table>'+
     (catList?'<div class="tot" style="text-align:right;">تفکیک هزینه بر اساس دسته:</div><table class="it"><thead><tr><th>دسته</th><th>مبلغ</th></tr></thead><tbody>'+catList+'</tbody></table>':'')+
     '</section>';
   var pages=arr.map(function(o,i){return buildInvoiceSection(o.inv,o.t,i===arr.length-1);}).join('');
-  return '<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="UTF-8"><title>آرشیو ماهانه</title><style>'+
-    '@page{size:A5;margin:8mm;}*{box-sizing:border-box;}'+
+  return '<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="UTF-8"><title>آرشیو ماهانه</title><style>'+archivePrintCss()+'</style></head><body>'+summary+pages+'</body></html>';
+}
+function archivePrintCss(){
+  return '@page{size:A5;margin:8mm;}*{box-sizing:border-box;}'+
     'body{font-family:Vazirmatn,Tahoma,sans-serif;color:#1a1a1a;margin:0;font-size:12pt;}'+
-    '.page{height:194mm;overflow:hidden;page-break-after:always;}'+
+    '.page{min-height:194mm;page-break-after:always;break-inside:avoid;}'+
     '.page.last{page-break-after:auto;}'+
     '.hd{border-bottom:2px solid #0E3F31;padding-bottom:8px;margin-bottom:10px;}'+
     '.ttl{font-size:15pt;font-weight:800;color:#0E3F31;}'+
@@ -2686,8 +2690,21 @@ function buildArchiveHtml(s,arr){
     '.sg .ln{height:15mm;border-bottom:none;margin-bottom:6px;}'+
     '.rcpt{margin-top:14px;border-top:1px dashed #ccc;padding-top:8px;text-align:center;}'+
     '.rcpt .rlbl{font-size:9pt;color:#666;font-weight:700;margin-bottom:4px;text-align:right;}'+
-    '.rcpt img{max-width:100%;max-height:60mm;object-fit:contain;border:1px solid #ddd;border-radius:6px;margin:3px 0;}'+
-    '</style></head><body>'+summary+pages+'</body></html>';
+    '.rcpt img{max-width:100%;max-height:60mm;object-fit:contain;border:1px solid #ddd;border-radius:6px;margin:3px 0;}';
+}
+function printHtmlDoc(html,filename){
+  if(isCapacitorApp()){
+    download(new Blob([html],{type:'text/html'}),filename);
+    toast('فایل چاپ ساخته شد؛ با Chrome بازش کن و Print → Save as PDF بزن');
+    return;
+  }
+  var w=window.open('','_blank');
+  if(!w){toast('اجازهٔ باز شدن پنجره را بده');return;}
+  w.document.open();w.document.write(html);w.document.close();
+  w.focus();setTimeout(function(){try{w.print();}catch(e){}},700);
+}
+function buildSingleInvoiceHtml(t,inv){
+  return '<!DOCTYPE html><html lang="fa" dir="rtl"><head><meta charset="UTF-8"><title>'+escapeHtml(invoiceTitleText())+'</title><style>'+archivePrintCss()+'</style></head><body>'+buildInvoiceSection(inv,t,true)+'</body></html>';
 }
 
 /* ---------- full backup (zip with photos) ---------- */
@@ -3274,10 +3291,7 @@ function buildReportHtml(d){
 function exportReportPdf(){
   var d=gatherReport();
   if(!d.rows.length){toast('در این بازه داده‌ای نیست');return;}
-  var w=window.open('','_blank');
-  if(!w){toast('اجازهٔ باز شدن پنجره را بده');return;}
-  w.document.open();w.document.write(buildReportHtml(d));w.document.close();
-  w.focus();setTimeout(function(){try{w.print();}catch(e){}},500);
+  printHtmlDoc(buildReportHtml(d),'گزارش-'+excelToday()+'.html');
 }
 
 /* ---------- report: Excel (.xlsx) ---------- */
