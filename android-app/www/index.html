@@ -1577,6 +1577,33 @@ var catTab='expense';
 var curSource='fund';
 var returnToReviewCenter=false;
 var returnToSheetId=null;
+/* پشتهٔ بازگشت چندسطحی: منو → صفحه → فرم → … */
+var returnStack=[];
+function syncReturnLegacy(){
+  var top=returnStack.length?returnStack[returnStack.length-1]:null;
+  returnToSheetId=(top&&top.kind==='sheet')?top.id:null;
+  returnToReviewCenter=returnStack.some(function(t){return t&&t.kind==='review';});
+}
+function pushReturnTarget(target){
+  if(!target||!target.kind) return;
+  if(target.kind==='sheet'&&!target.id) return;
+  var top=returnStack.length?returnStack[returnStack.length-1]:null;
+  if(top&&top.kind===target.kind&&top.id===target.id) return;
+  returnStack.push(target);
+  syncReturnLegacy();
+}
+function hasReturnTarget(){ return returnStack.length>0; }
+function peekReturnTarget(){ return returnStack.length?returnStack[returnStack.length-1]:null; }
+function popReturnTarget(){
+  var t=returnStack.length?returnStack.pop():null;
+  syncReturnLegacy();
+  return t;
+}
+function clearReturnStack(){
+  returnStack=[];
+  returnToSheetId=null;
+  returnToReviewCenter=false;
+}
 
 function defaultState(){
   return {books:[{id:1,name:'دفتر اصلی',tx:[],cats:clone(DEFAULT_CATS),budgets:{}}],activeBookId:1,settings:{invoiceTitle:'رسید / فاکتور'},meta:{savedAt:0,storage:'internal'}};
@@ -2154,8 +2181,17 @@ function askSettle(mode,id){
 function closeSettleModal(){document.getElementById('settleModal').classList.remove('show');if(!appBackHandling&&appNavDepth>0)appNavDepth--;}
 function reopenReviewIfNeeded(){
   if(!returnToReviewCenter)return;
-  returnToReviewCenter=false;
-  setTimeout(function(){ openReview(); },0);
+  // فقط هدف بررسی را از پشته بردار؛ بقیه (مثل منو) بماند
+  for(var i=returnStack.length-1;i>=0;i--){
+    if(returnStack[i]&&returnStack[i].kind==='review'){ returnStack.splice(i,1); break; }
+  }
+  syncReturnLegacy();
+  setTimeout(function(){
+    hideSheets();
+    syncReviewSettingsInputs();
+    renderReview();
+    showSheet('reviewSheet');
+  },0);
 }
 function createSettleDoc(tx,amount,from){
   if(from!=='fund'||!amount)return null;
@@ -2651,8 +2687,7 @@ function invDefault(t){return {title:invoiceTitleText(),category:t.cat||'',docNo
   dateJalali:jDateStr({jy:t.jy,jm:t.jm,jd:t.jd},false),notes:t.receiptNote||''};}
 function openInvoice(id){
   invoiceOpenedFromSheetId=visibleSheet()?visibleSheet().id:null;
-  returnToSheetId=null;
-  returnToReviewCenter=false;
+  clearReturnStack();
   var t=activeBook().tx.find(function(x){return x.id===id;});
   if(!t){toast('سند یافت نشد');return;}
   invoiceGet(id).then(function(saved){
@@ -3161,12 +3196,14 @@ function closeTopSheetOnly(){
 }
 function rememberCurrentSheetForReturn(preferredId){
   var current=preferredId?document.getElementById(preferredId):visibleSheet();
-  returnToSheetId=current&&current.classList.contains('show')?current.id:null;
-  returnToReviewCenter=false;
+  if(current&&current.classList.contains('show')){
+    pushReturnTarget({kind:'sheet', id:current.id});
+  }else{
+    syncReturnLegacy();
+  }
 }
 function openFromReviewCenter(openFn){
-  returnToReviewCenter=true;
-  returnToSheetId=null;
+  pushReturnTarget({kind:'review'});
   hideSheets();
   openFn();
 }
@@ -3174,9 +3211,10 @@ function openFromReviewCenter(openFn){
    Back/بستن دقیقاً به همان منو برگردد (یا اگر از «مرکز بررسی» باز شده بود به آن).
    اگر به‌جای منو از صفحهٔ اصلی باز شود، Back به خانه برمی‌گردد. */
 function enterManagedSheet(id,renderFn){
-  if(!returnToReviewCenter){
+  var comingFromReview=peekReturnTarget()&&peekReturnTarget().kind==='review';
+  if(!comingFromReview){
     var fromMenu=document.getElementById('menuSheet').classList.contains('show');
-    rememberCurrentSheetForReturn(fromMenu?'menuSheet':null);
+    if(fromMenu) pushReturnTarget({kind:'sheet', id:'menuSheet'});
   }
   hideSheets();
   if(renderFn)renderFn();
@@ -3184,37 +3222,41 @@ function enterManagedSheet(id,renderFn){
 }
 /* صفحهٔ سطح‌اول که مستقیم از صفحهٔ اصلی باز می‌شود؛ Back همیشه به خانه برمی‌گردد. */
 function enterTopLevelSheet(id,renderFn){
-  returnToSheetId=null;
-  returnToReviewCenter=false;
+  clearReturnStack();
   hideSheets();
   if(renderFn)renderFn();
   showSheet(id);
 }
 /* پاک‌سازی مبدأ بازگشت برای ورودی‌های سطح‌اول مشترک (مثل فرم ثبت/ویرایش از خانه). */
-function clearReturnContext(){returnToSheetId=null;returnToReviewCenter=false;}
+function clearReturnContext(){ clearReturnStack(); }
 function reopenPreviousSheet(){
-  var sheetId=returnToSheetId;
-  var shouldReturnReview=returnToReviewCenter;
-  returnToSheetId=null;
-  returnToReviewCenter=false;
-  if(sheetId){
+  var target=popReturnTarget();
+  if(!target) return;
+  if(target.kind==='sheet'){
     setTimeout(function(){
-      if(sheetId==='receiptInboxSheet')renderReceiptInbox();
-      if(sheetId==='bankSmsSheet')renderBankSmsSheet();
-      showSheet(sheetId);
+      if(target.id==='receiptInboxSheet')renderReceiptInbox();
+      if(target.id==='bankSmsSheet')renderBankSmsSheet();
+      if(target.id==='reviewSheet'){ syncReviewSettingsInputs(); renderReview(); }
+      if(target.id==='templatesSheet'&&typeof renderTemplates==='function')renderTemplates();
+      showSheet(target.id);
     },0);
-  }else if(shouldReturnReview){
-    setTimeout(openReview,0);
+  }else if(target.kind==='review'){
+    setTimeout(function(){
+      hideSheets();
+      syncReviewSettingsInputs();
+      renderReview();
+      showSheet('reviewSheet');
+    },0);
   }
 }
 function closeSheetWithContext(){
-  var hasPrevious=!!returnToSheetId||returnToReviewCenter;
+  var hasPrevious=hasReturnTarget();
   closeTopSheetOnly();
   if(appNavDepth>0)appNavDepth--;
   if(hasPrevious&&!visibleSheet())reopenPreviousSheet();
 }
 function finishSheetWithContext(){
-  var hasPrevious=!!returnToSheetId||returnToReviewCenter;
+  var hasPrevious=hasReturnTarget();
   hideSheets();
   render();
   if(hasPrevious)reopenPreviousSheet();
@@ -3239,7 +3281,7 @@ function finishSheetWithContext(){
     if(full){
       closeVisibleFullOverlay();
     }else if(open){
-      var hasPrevious=!!returnToSheetId||returnToReviewCenter;
+      var hasPrevious=hasReturnTarget();
       closeTopSheetOnly();
       if(appNavDepth>0)appNavDepth--;
       if(hasPrevious&&!visibleSheet())reopenPreviousSheet();
@@ -3510,8 +3552,7 @@ function renderReport(){
 }
 function openReport(){
   /* گزارش یک صفحهٔ سطح اول است؛ Back باید مستقیم به صفحهٔ اصلی برگردد. */
-  returnToSheetId=null;
-  returnToReviewCenter=false;
+  clearReturnStack();
   hideSheets();
   var minY=todayJ().jy;
   state.books.forEach(function(b){b.tx.forEach(function(t){if(t.jy<minY)minY=t.jy;});});
@@ -4233,8 +4274,9 @@ function reviewInboxItem(id){
   var item=activeBook().receiptInbox.find(function(x){return x.id===id;});
   if(!item)return;
   var cameFromInbox=document.getElementById('receiptInboxSheet').classList.contains('show');
-  if(cameFromInbox&&!returnToReviewCenter)returnToSheetId='receiptInboxSheet';
-  else if(!returnToReviewCenter)rememberCurrentSheetForReturn();
+  var fromReview=peekReturnTarget()&&peekReturnTarget().kind==='review';
+  if(cameFromInbox&&!fromReview) pushReturnTarget({kind:'sheet', id:'receiptInboxSheet'});
+  else if(!fromReview) rememberCurrentSheetForReturn();
   hideSheets();
   openAdd();
   currentInboxReviewId=id;
@@ -4706,8 +4748,7 @@ document.getElementById('accountsBtn').onclick=openAccounts;document.getElementB
 document.getElementById('receiptInboxBtn').onclick=openReceiptInbox;document.getElementById('addInboxPhoto').onclick=function(){document.getElementById('inboxPhotoIn').click();};document.getElementById('inboxPhotoIn').onchange=function(e){addInboxFiles(e.target.files);e.target.value='';};
 document.getElementById('reviewBtn').onclick=openReview;
 document.getElementById('reviewClose').onclick=function(){
-  returnToReviewCenter=false;
-  returnToSheetId=null;
+  clearReturnStack();
   reviewQuickMode=false;
   hideSheets();
 };
@@ -5522,6 +5563,7 @@ function confirmBankSms(id){
   var j=g2j(dt.getFullYear(),dt.getMonth()+1,dt.getDate());
   // فقط مبلغ (و نوع واریز/برداشت) پر می‌شود؛ عنوان و دسته را خودت کامل کن
   rememberCurrentSheetForReturn('bankSmsSheet');
+  hideSheets(); // بدون این، شیت پیامک روی فرم ثبت می‌ماند
   window.__keepBankSmsPending=true; openAdd(); window.__keepBankSmsPending=false;
   setTimeout(function(){
     setType(p.type==='income'?'income':'expense');
