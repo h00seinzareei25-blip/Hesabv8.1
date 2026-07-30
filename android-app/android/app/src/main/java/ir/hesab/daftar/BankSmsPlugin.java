@@ -124,17 +124,29 @@ public class BankSmsPlugin extends Plugin {
         }
         String sort = Telephony.Sms.DATE + " DESC";
 
-        try (Cursor c = getContext().getContentResolver().query(uri, projection, selection, selectionArgs, sort)) {
+        Cursor c = null;
+        try {
+            c = getContext().getContentResolver().query(uri, projection, selection, selectionArgs, sort);
+            if (c == null) {
+                // fallback URI used by some OEMs
+                c = getContext().getContentResolver().query(Uri.parse("content://sms/inbox"), projection, selection, selectionArgs, sort);
+            }
             if (c != null) {
                 int idIdx = c.getColumnIndex(Telephony.Sms._ID);
+                if (idIdx < 0) idIdx = c.getColumnIndex("_id");
                 int addrIdx = c.getColumnIndex(Telephony.Sms.ADDRESS);
+                if (addrIdx < 0) addrIdx = c.getColumnIndex("address");
                 int bodyIdx = c.getColumnIndex(Telephony.Sms.BODY);
+                if (bodyIdx < 0) bodyIdx = c.getColumnIndex("body");
                 int dateIdx = c.getColumnIndex(Telephony.Sms.DATE);
-                while (c.moveToNext() && messages.size() < limit) {
+                if (dateIdx < 0) dateIdx = c.getColumnIndex("date");
+                int scanned = 0;
+                while (c.moveToNext() && messages.size() < limit && scanned < 2000) {
+                    scanned++;
                     String address = addrIdx >= 0 ? c.getString(addrIdx) : "";
                     if (!senders.isEmpty() && !senderMatches(address, senders)) continue;
                     JSObject msg = new JSObject();
-                    msg.put("id", idIdx >= 0 ? c.getString(idIdx) : "");
+                    msg.put("id", idIdx >= 0 ? c.getString(idIdx) : ("sms-" + scanned));
                     msg.put("address", address == null ? "" : address);
                     msg.put("body", bodyIdx >= 0 ? safe(c.getString(bodyIdx)) : "");
                     msg.put("date", dateIdx >= 0 ? c.getLong(dateIdx) : 0L);
@@ -145,14 +157,19 @@ public class BankSmsPlugin extends Plugin {
             call.reject("SMS permission denied by system", "PERMISSION_DENIED");
             return;
         } catch (Exception e) {
-            call.reject("Failed to read SMS: " + e.getMessage());
+            call.reject("Failed to read SMS: " + (e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage()));
             return;
+        } finally {
+            if (c != null) {
+                try { c.close(); } catch (Exception ignored) {}
+            }
         }
 
         JSObject ret = new JSObject();
         JSArray out = new JSArray();
         for (JSObject m : messages) out.put(m);
         ret.put("messages", out);
+        ret.put("count", messages.size());
         call.resolve(ret);
     }
 
