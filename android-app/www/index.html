@@ -1345,7 +1345,7 @@ function fa(n){return String(n).replace(/[0-9]/g,function(d){return '۰۱۲۳۴�
 function enDigits(s){return String(s).replace(/[۰-۹]/g,function(d){return '۰۱۲۳۴۵۶۷۸۹'.indexOf(d);}).replace(/[^0-9]/g,'');}
 function faAware(s){return String(s).replace(/[۰-۹]/g,function(d){return '۰۱۲۳۴۵۶۷۸۹'.indexOf(d);});}
 function group(n){return String(n).replace(/\B(?=(\d{3})+(?!\d))/g,',');}
-function money(n){return fa(group(Math.round(n)));}
+function money(n){n=Math.round(n);if(n<0)return '\u2066-'+fa(group(Math.abs(n)))+'\u2069';return fa(group(n));}
 function jKey(j){return j.jy+'-'+String(j.jm).padStart(2,'0');}
 function clone(o){return JSON.parse(JSON.stringify(o));}
 function escapeHtml(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
@@ -1903,6 +1903,18 @@ function askSettle(mode,id){settleTarget={mode:mode,id:id};showFullOverlay('sett
 function closeSettleModal(){document.getElementById('settleModal').classList.remove('show');if(!appBackHandling&&appNavDepth>0)appNavDepth--;}
 function doSettle(from){
   closeSettleModal();
+  if(!settleTarget)return;
+  if(from==='fund'){
+    var amt=0;
+    if(settleTarget.mode==='all')amt=totalUnsettled();
+    else{var t=activeBook().tx.find(function(x){return x.id===settleTarget.id;});amt=t?t.amount:0;}
+    var bal;
+    try{
+      var fundAcc=(activeBook().accounts||[]).find(function(a){return a.kind==='fund';});
+      bal=(fundAcc&&typeof accountBalance==='function')?accountBalance(fundAcc.id):fundBalance();
+    }catch(e){bal=fundBalance();}
+    if(amt>bal&&!confirm('موجودی تنخواه '+money(bal)+' تومان است و با این تسویه ('+money(amt)+' تومان) منفی می‌شود.\nادامه بدهم؟'))return;
+  }
   if(settleTarget.mode==='all')settleAll(from);else settleOne(settleTarget.id,from);
 }
 function settleOne(id,from){
