@@ -899,7 +899,9 @@
   .account-name-in:focus{outline:none;border-bottom:1px solid var(--brand);}
   .section-caption{font-size:11px;color:var(--muted);font-weight:800;margin:12px 2px 7px;}
   .review-severity{font-size:9.5px;font-weight:900;padding:2px 7px;border-radius:10px;background:var(--gold-soft);color:var(--brand-deep);white-space:nowrap;}
-  .review-severity.high{background:var(--expense-soft);color:var(--expense);}
+  .review-severity.high,.review-severity.urgent{background:var(--expense-soft);color:var(--expense);}
+  .review-severity.week{background:var(--gold-soft);color:var(--brand-deep);}
+  .review-severity.info{background:var(--bg);color:var(--muted);border:1px solid var(--line);}
   .review-sticky-head{
     position:sticky;top:-18px;z-index:8;
     margin:-18px -18px 12px;padding:10px 18px 12px;
@@ -916,17 +918,49 @@
     background:var(--bg);color:var(--muted);border:1px solid var(--line);
   }
   .review-head-btn.refresh{width:34px;padding:0;color:var(--brand);background:var(--income-soft);}
+  .review-head-btn.quick{font-size:11px;color:var(--brand-deep);background:var(--gold-soft);border-color:transparent;}
+  .review-head-btn.quick.on{background:var(--brand);color:#fff;}
   .review-head-btn.close{width:34px;padding:0;font-size:17px;}
   .review-head-btn:active{transform:scale(.96);}
   .review-help{
     margin:0 0 12px;padding:9px 11px;border-radius:11px;
     background:var(--bg);color:var(--muted);font-size:11px;line-height:1.8;
   }
+  .review-filters{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px;}
+  .review-chip{
+    border:1px solid var(--line);background:var(--bg);color:var(--muted);
+    border-radius:999px;padding:5px 10px;font-size:11px;font-weight:800;
+  }
+  .review-chip.on{background:var(--brand);color:#fff;border-color:var(--brand);}
+  .review-chip .n{margin-right:4px;opacity:.85;}
+  .review-group-title{font-size:12px;font-weight:900;color:var(--brand-deep);margin:14px 2px 8px;}
+  .review-card{transition:box-shadow .2s,background .2s;}
+  .review-card.hl{box-shadow:0 0 0 2px var(--brand);background:var(--income-soft);}
+  .review-empty-cta{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:14px;}
+  .review-empty-cta button{
+    border:none;border-radius:12px;padding:10px 14px;font-weight:800;font-size:12.5px;
+    background:var(--brand);color:#fff;
+  }
+  .review-empty-cta button.alt{background:var(--gold);color:var(--brand-deep);}
+  .review-settings{
+    display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px;
+    padding:10px;border-radius:12px;background:var(--bg);border:1px solid var(--line);
+  }
+  .review-settings label{display:block;font-size:10.5px;color:var(--muted);font-weight:800;margin-bottom:4px;}
+  .review-settings input{
+    width:100%;border:1px solid var(--line);border-radius:9px;padding:8px 10px;
+    background:var(--surface);font-weight:800;font-size:12.5px;direction:ltr;text-align:left;
+  }
+  .review-need-badge{
+    display:inline-grid;place-items:center;min-width:16px;height:16px;margin-right:5px;
+    border-radius:8px;background:var(--expense);color:#fff;font-size:10px;font-weight:900;vertical-align:middle;
+  }
   @media(max-width:390px){
     .review-title-row h2{font-size:15px;}
     .review-head-actions{gap:4px;}
     .review-head-btn{height:32px;padding:0 8px;font-size:11px;}
     .review-head-btn.refresh,.review-head-btn.close{width:32px;}
+    .review-settings{grid-template-columns:1fr;}
   }
   .review-summary{
     display:flex;align-items:center;justify-content:space-between;gap:10px;
@@ -1129,7 +1163,7 @@
   <div class="menu-item" id="globalSearchBtn"><span class="mi">🔎</span><div class="txt">جستجوی سراسری<div class="sub">بین همهٔ ماه‌ها و دفترها</div></div></div>
   <div class="menu-item" id="recurringBtn"><span class="mi">🔁</span><div class="txt">تراکنش‌های تکراری ماهانه<div class="sub">اجاره، حقوق، اقساط و ثبت خودکار</div></div></div>
   <div class="menu-item" id="receiptInboxBtn"><span class="mi">📥</span><div class="txt">صندوق ورودی فاکتورها<div class="sub">رسیدهای ثبت‌نشده و تشخیص متن</div></div><span class="feature-count" id="inboxMenuCount" style="display:none">۰</span></div>
-  <div class="menu-item" id="reviewBtn"><span class="mi">🔎</span><div class="txt">موارد نیازمند اقدام<div class="sub">تکراری‌ها، مانده منفی، فاکتور ناقص و برگشت باز</div></div><span class="feature-count" id="reviewMenuCount" style="display:none">۰</span></div>
+  <div class="menu-item" id="reviewBtn"><span class="mi">🔎</span><div class="txt">موارد نیازمند اقدام<div class="sub">صف اقدام با فیلتر، تسویه سریع و نادیده‌گرفتن</div></div><span class="feature-count" id="reviewMenuCount" style="display:none">۰</span></div>
   <div class="menu-item" id="templatesBtn"><span class="mi">⚡</span><div class="txt">قالب‌های ثبت سریع<div class="sub">پر کردن سریع فرم بدون ثبت خودکار</div></div></div>
   <div class="menu-item" id="rulesBtn"><span class="mi">🧠</span><div class="txt">قوانین دسته‌بندی<div class="sub">انتخاب خودکار دسته و حساب از روی عنوان</div></div></div>
   <div class="menu-item" id="compareBtn"><span class="mi">📊</span><div class="txt">مقایسه ماه‌ها<div class="sub">رشد هزینه، میانگین و دسته‌های پرمصرف</div></div></div>
@@ -1379,12 +1413,18 @@
     <div class="review-title-row">
       <h2>موارد نیازمند اقدام</h2>
       <div class="review-head-actions">
+        <button class="review-head-btn quick" id="reviewQuickBtn" type="button" title="فقط موارد فوری، یکی‌یکی">پاکسازی</button>
         <button class="review-head-btn refresh" id="reviewRefresh" type="button" title="بررسی دوباره">↻</button>
         <button class="review-head-btn close" id="reviewClose" type="button" aria-label="بستن">✕</button>
       </div>
     </div>
   </div>
-  <div class="review-help" id="reviewHelp">مواردی که لازم است بررسی یا تکمیل شوند اینجا جمع می‌شوند؛ مانند سند ناقص، فاکتور جاافتاده، تراکنش تکراری، مانده منفی و واریز باز.</div>
+  <div class="review-help" id="reviewHelp">صف اقدام‌های باز دفتر: فاکتور، نواقص سند، موارد مالی باز، مشکوک‌ها و مانده حساب. بعد از رفع هر مورد به همین‌جا برمی‌گردی.</div>
+  <div class="review-settings" id="reviewSettings">
+    <div><label>آستانه عکس فاکتور (تومان)</label><input id="reviewPhotoMinIn" inputmode="numeric" placeholder="1000000"></div>
+    <div><label>سن تسویه کارت شخصی (روز)</label><input id="reviewSettleDaysIn" inputmode="numeric" placeholder="7"></div>
+  </div>
+  <div class="review-filters" id="reviewFilters"></div>
   <div id="reviewList"></div>
 </div>
 
@@ -2071,6 +2111,11 @@ function askSettle(mode,id){
   showFullOverlay('settleModal');
 }
 function closeSettleModal(){document.getElementById('settleModal').classList.remove('show');if(!appBackHandling&&appNavDepth>0)appNavDepth--;}
+function reopenReviewIfNeeded(){
+  if(!returnToReviewCenter)return;
+  returnToReviewCenter=false;
+  setTimeout(function(){ openReview(); },0);
+}
 function createSettleDoc(tx,amount,from){
   if(from!=='fund'||!amount)return null;
   var b=activeBook(),j=todayJ(),fundAcc=(b.accounts||[]).find(function(a){return a.kind==='fund';});
@@ -2103,21 +2148,23 @@ function doSettle(from){
     var amt=totalUnsettled();
     if(from==='fund'){
       var bal;try{var fundAcc=(activeBook().accounts||[]).find(function(a){return a.kind==='fund';});bal=(fundAcc&&typeof accountBalance==='function')?accountBalance(fundAcc.id):fundBalance();}catch(e){bal=fundBalance();}
-      if(amt>bal&&!confirm('موجودی تنخواه '+money(bal)+' تومان است و با این تسویه ('+money(amt)+' تومان) منفی می‌شود.\nادامه بدهم؟'))return;
+      if(amt>bal&&!confirm('موجودی تنخواه '+money(bal)+' تومان است و با این تسویه ('+money(amt)+' تومان) منفی می‌شود.\nادامه بدهم؟')){reopenReviewIfNeeded();return;}
     }
-    settleAll(from);return;
+    settleAll(from);reopenReviewIfNeeded();return;
   }
-  var t=activeBook().tx.find(function(x){return x.id===settleTarget.id;});if(!t)return;
+  var t=activeBook().tx.find(function(x){return x.id===settleTarget.id;});if(!t){reopenReviewIfNeeded();return;}
   var rem=settleRemaining(t);var pay=custom>0?Math.min(custom,rem):rem;
-  if(pay<=0){toast('مبلغی برای تسویه نمانده');return;}
+  if(pay<=0){toast('مبلغی برای تسویه نمانده');reopenReviewIfNeeded();return;}
   if(from==='fund'){
     var bal2;try{var fa2=(activeBook().accounts||[]).find(function(a){return a.kind==='fund';});bal2=(fa2&&typeof accountBalance==='function')?accountBalance(fa2.id):fundBalance();}catch(e){bal2=fundBalance();}
-    if(pay>bal2&&!confirm('موجودی تنخواه '+money(bal2)+' تومان است و با این تسویه منفی می‌شود.\nادامه بدهم؟'))return;
+    if(pay>bal2&&!confirm('موجودی تنخواه '+money(bal2)+' تومان است و با این تسویه منفی می‌شود.\nادامه بدهم؟')){reopenReviewIfNeeded();return;}
   }
   applySettleAmount(t,pay,from);
   if(typeof addAudit==='function')addAudit('تسویه کارت شخصی',(t.desc||t.cat)+' · '+money(pay)+(t.settled?' (کامل)':' (جزئی)'),t.id);
+  if(typeof invalidateReviewCache==='function')invalidateReviewCache();
   persist();renderPersonalList();renderDebtBanner();render();
   toast((t.settled?'تسویه کامل':'تسویه جزئی')+' ✓ ('+(from==='fund'?'از تنخواه':'به من')+')');
+  reopenReviewIfNeeded();
 }
 function settleOne(id,from){
   var tx=activeBook().tx.find(function(t){return t.id===id;});
@@ -2244,7 +2291,7 @@ function render(){
     html+='<div class="day-group"><div class="day-head"><span class="d">'+fa(d)+' '+MONTHS[view.jm-1]+'</span>'+
       '<span class="s" style="color:'+(net>=0?'var(--income)':'var(--expense)')+'">'+(net>=0?'+':'−')+money(Math.abs(net))+'</span></div><div class="tx-card">';
     items.forEach(function(t){var positive=(t.type==='income'||t.type==='neutral_in'),neutral=(t.type==='neutral_in'||t.type==='neutral_out'),sign=positive?'+':'−';
-      var badge=(isPersonalExpense(t)&&!t.settled)?'<span class="personal-badge">💳</span>':'';
+      var badge=(isPersonalExpense(t)&&(typeof settleRemaining==='function'?settleRemaining(t)>0:!t.settled))?'<span class="personal-badge">💳</span>':'';
       var sbadge=(isPersonalExpense(t)&&t.settled)?'<span class="settled-badge" data-sj="'+(t.settledJ?jDateStr(t.settledJ,false):'')+'" data-from="'+(t.settledFrom==='fund'?'از تنخواه':(t.settledFrom==='me'?'به من':''))+'">✓</span>':'';
       var rbadge=t.hasPhoto?'<span class="receipt-badge" data-photo="'+t.id+'">🧾'+(t.photoCount>1?fa(t.photoCount):'')+'</span>':'';
       var invb='<span class="invoice-badge" data-inv="'+t.id+'">📄</span>';
@@ -3833,7 +3880,7 @@ document.getElementById('debtViewBtn').onclick=openPersonal;
 document.getElementById('settleAllBtn').onclick=function(){askSettle('all',null);};
 document.getElementById('settleFromFund').onclick=function(){doSettle('fund');};
 document.getElementById('settleFromMe').onclick=function(){doSettle('me');};
-document.getElementById('settleCancel').onclick=closeSettleModal;
+document.getElementById('settleCancel').onclick=function(){closeSettleModal();reopenReviewIfNeeded();};
 
 /* ---------- service worker ---------- */
 if('serviceWorker' in navigator && !window.Capacitor){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
@@ -3867,6 +3914,8 @@ normalizeState=function(s){
   if(!s.settings)s.settings={};
   if(typeof s.settings.monthPin!=='string')s.settings.monthPin='';
   if(typeof s.settings.monthPinHash!=='string')s.settings.monthPinHash='';
+  if(!(+s.settings.reviewPhotoMin>0))s.settings.reviewPhotoMin=1000000;
+  if(!(+s.settings.reviewSettleDays>0))s.settings.reviewSettleDays=7;
   (s.books||[]).forEach(ensureAdvancedBook);
   return s;
 };
@@ -3884,6 +3933,7 @@ function ensureAdvancedBook(b){
   if(!b.closedMonths)b.closedMonths={};
   if(!Array.isArray(b.audit))b.audit=[];
   if(!Array.isArray(b.receiptInbox))b.receiptInbox=[];
+  if(!b.reviewDismissed||typeof b.reviewDismissed!=='object')b.reviewDismissed={};
   (b.tx||[]).forEach(function(t){
     if(!t.accountId)t.accountId=t.source==='personal'?'personal':'fund';
     var acc=(b.accounts||[]).find(function(a){return a.id===t.accountId;});
@@ -4111,77 +4161,326 @@ function runInboxOcr(id){
 }
 
 function neutralRemaining(t,book){book=book||activeBook();var returned=(book.tx||[]).filter(function(x){return x.type==='neutral_out'&&x.linkedTxId===t.id;}).reduce(function(s,x){return s+x.amount;},0);return Math.max(0,t.amount-returned);}
-function reviewIssues(){
-  var b=activeBook(),issues=[],today=todayJ(),seen={};
-  (b.receiptInbox||[]).forEach(function(x){issues.push({kind:'inbox',severity:'high',title:'فاکتور بررسی‌نشده',sub:x.desc||'عکس داخل صندوق ورودی',inboxId:x.id});});
+
+var reviewCache={bookId:null,savedAt:null,issues:null};
+var reviewFilter='all';
+var reviewQuickMode=false;
+var reviewFocusKey=null;
+var reviewScrollTop=0;
+
+function reviewPhotoMin(){return Math.max(1,+(state.settings&&state.settings.reviewPhotoMin)||1000000);}
+function reviewSettleDays(){return Math.max(1,+(state.settings&&state.settings.reviewSettleDays)||7);}
+function invalidateReviewCache(){reviewCache.issues=null;}
+function isAutoSystemTx(t){
+  return !!(t&&(t.settleOf||t.transferGroup||t.recurId||(t.receiptNote&&String(t.receiptNote).indexOf('سند خودکار')===0)||(t.receiptNote&&String(t.receiptNote).indexOf('ثبت خودکار')===0)||(t.receiptNote&&String(t.receiptNote).indexOf('اصلاح خودکار')===0)));
+}
+function issueKey(x){
+  if(x.key)return x.key;
+  if(x.inboxId)return 'inbox:'+x.inboxId;
+  if(x.accountId)return 'balance:'+x.accountId;
+  if(x.kind==='duplicate'&&x.pairId)return 'duplicate:'+x.txId+':'+x.pairId;
+  return (x.kind||'x')+':'+(x.txId||'');
+}
+function isIssueDismissed(b,key){
+  var d=(b.reviewDismissed||{})[key];
+  if(!d)return false;
+  if(d.forever)return true;
+  if(d.until&&d.until>Date.now())return true;
+  if(d.until&&d.until<=Date.now()){delete b.reviewDismissed[key];return false;}
+  return false;
+}
+function dismissReviewIssue(key,mode){
+  var b=activeBook();
+  if(!b.reviewDismissed)b.reviewDismissed={};
+  if(mode==='forever')b.reviewDismissed[key]={forever:true,at:Date.now()};
+  else{
+    var until=Date.now()+3*24*60*60*1000; // snooze 3 days
+    b.reviewDismissed[key]={until:until,at:Date.now()};
+  }
+  invalidateReviewCache();persist();renderReview();updateMenuBadges();renderTodayDashboard();
+  toast(mode==='forever'?'برای همیشه نادیده گرفته شد':'تا ۳ روز نادیده گرفته شد');
+}
+function severityLabel(sev){
+  if(sev==='urgent'||sev==='high')return 'فوری';
+  if(sev==='week')return 'این هفته';
+  return 'اطلاع';
+}
+function severityRank(sev){return sev==='urgent'||sev==='high'?0:sev==='week'?1:2;}
+function groupMeta(g){
+  return {
+    inbox:{title:'صندوق فاکتور',order:1},
+    docs:{title:'نواقص سند',order:2},
+    finance:{title:'موارد مالی باز',order:3},
+    suspect:{title:'مشکوک / نیازمند مدرک',order:4},
+    accounts:{title:'حساب‌ها',order:5}
+  }[g]||{title:g,order:9};
+}
+function computeReviewIssues(){
+  var b=activeBook(),issues=[],today=todayJ(),seen={},photoMin=reviewPhotoMin(),settleDays=reviewSettleDays();
+  (b.receiptInbox||[]).forEach(function(x){
+    issues.push({kind:'inbox',group:'inbox',severity:'urgent',title:'فاکتور بررسی‌نشده',sub:x.desc||'عکس داخل صندوق ورودی',inboxId:x.id,action:'inbox'});
+  });
   (b.tx||[]).forEach(function(t){
-    if(!t.docNo)issues.push({kind:'docno',severity:'high',title:'سند بدون شماره',sub:(t.desc||t.cat)+' · '+jDateStr(t,false),txId:t.id});
-    if(!String(t.desc||'').trim())issues.push({kind:'desc',severity:'normal',title:'شرح سند ناقص است',sub:(t.docNo||'بدون شماره')+' · '+(t.cat||'بدون دسته'),txId:t.id});
-    if(!String(t.cat||'').trim())issues.push({kind:'category',severity:'high',title:'سند بدون دسته‌بندی',sub:(t.docNo||'بدون شماره')+' · '+money(t.amount),txId:t.id});
-    if(jcmp(t)>jcmp(today))issues.push({kind:'future',severity:'high',title:'تراکنش با تاریخ آینده',sub:(t.docNo||'بدون شماره')+' · '+(t.desc||t.cat)+' · '+jDateStr(t,false),txId:t.id});
-    if(t.type==='expense'&&t.amount>=1000000&&!t.hasPhoto)issues.push({kind:'photo',severity:'normal',title:'هزینه بزرگ بدون عکس فاکتور',sub:(t.docNo||'بدون شماره')+' · '+(t.desc||t.cat)+' · '+money(t.amount),txId:t.id});
-    var key=[t.jy,t.jm,t.jd,t.amount,String(t.desc||'').trim().toLowerCase()].join('|');if(seen[key])issues.push({kind:'duplicate',severity:'high',title:'تراکنش احتمالاً تکراری',sub:(t.docNo||'بدون شماره')+' · '+(t.desc||t.cat)+' · '+money(t.amount),txId:t.id});else seen[key]=t.id;
-    if(t.type==='neutral_in'&&neutralRemaining(t,b)>0)issues.push({kind:'neutral',severity:'normal',title:'واریز غیر درآمدی باز',sub:(t.docNo||'بدون شماره')+' · '+(t.desc||t.cat)+' · مانده '+money(neutralRemaining(t,b)),txId:t.id});
-    if(isPersonalExpense(t)&&!t.settled){
-      var age=jcmp(today)-jcmp(t);
-      if(age>7)issues.push({kind:'unsettled',severity:'normal',title:'هزینه کارت شخصی تسویه‌نشده',sub:(t.docNo||'بدون شماره')+' · '+(t.desc||t.cat)+' · '+money(t.amount),txId:t.id});
+    if(isAutoSystemTx(t))return;
+    if(!t.docNo)issues.push({kind:'docno',group:'docs',severity:'urgent',title:'سند بدون شماره',sub:(t.desc||t.cat)+' · '+jDateStr(t,false),txId:t.id,action:'edit'});
+    if(!String(t.desc||'').trim())issues.push({kind:'desc',group:'docs',severity:'info',title:'شرح سند ناقص است',sub:(t.docNo||'بدون شماره')+' · '+(t.cat||'بدون دسته'),txId:t.id,action:'edit'});
+    if(!String(t.cat||'').trim())issues.push({kind:'category',group:'docs',severity:'urgent',title:'سند بدون دسته‌بندی',sub:(t.docNo||'بدون شماره')+' · '+money(t.amount),txId:t.id,action:'edit'});
+    if(jcmp(t)>jcmp(today))issues.push({kind:'future',group:'docs',severity:'urgent',title:'تراکنش با تاریخ آینده',sub:(t.docNo||'بدون شماره')+' · '+(t.desc||t.cat)+' · '+jDateStr(t,false),txId:t.id,action:'edit'});
+    if(t.type==='expense'&&t.amount>=photoMin&&!t.hasPhoto)issues.push({kind:'photo',group:'suspect',severity:'week',title:'هزینه بزرگ بدون عکس فاکتور',sub:(t.docNo||'بدون شماره')+' · '+(t.desc||t.cat)+' · '+money(t.amount),txId:t.id,action:'photo'});
+    var key=[t.jy,t.jm,t.jd,t.amount,String(t.desc||'').trim().toLowerCase()].join('|');
+    if(seen[key]){
+      var other=seen[key];
+      issues.push({kind:'duplicate',group:'suspect',severity:'urgent',title:'تراکنش احتمالاً تکراری',sub:(t.docNo||'بدون شماره')+' با '+(other.docNo||'بدون شماره')+' · '+(t.desc||t.cat)+' · '+money(t.amount),txId:t.id,pairId:other.id,action:'duplicate'});
+    }else seen[key]=t;
+    if(t.type==='neutral_in'&&!t.transferGroup&&neutralRemaining(t,b)>0){
+      issues.push({kind:'neutral',group:'finance',severity:'week',title:'واریز غیر درآمدی باز',sub:(t.docNo||'بدون شماره')+' · '+(t.desc||t.cat)+' · مانده '+money(neutralRemaining(t,b)),txId:t.id,action:'return'});
+    }
+    if(isPersonalExpense(t)){
+      var rem=typeof settleRemaining==='function'?settleRemaining(t):(t.settled?0:t.amount);
+      if(rem>0){
+        var age=jcmp(today)-jcmp(t);
+        if(age>=settleDays){
+          issues.push({kind:'unsettled',group:'finance',severity:age>=settleDays*2?'urgent':'week',title:'هزینه کارت شخصی تسویه‌نشده',sub:(t.docNo||'بدون شماره')+' · '+(t.desc||t.cat)+' · مانده '+money(rem)+' · '+fa(age)+' روز',txId:t.id,action:'settle'});
+        }
+      }
     }
   });
-  (b.accounts||[]).filter(function(a){return a.kind!=='personal';}).forEach(function(a){var bal=accountBalance(a.id,b);if(bal<0)issues.push({kind:'balance',severity:'high',title:'مانده منفی حساب '+a.name,sub:money(bal)+' تومان',accountId:a.id});});
+  (b.accounts||[]).filter(function(a){return a.kind!=='personal';}).forEach(function(a){
+    var bal=accountBalance(a.id,b);
+    if(bal<0)issues.push({kind:'balance',group:'accounts',severity:'urgent',title:'مانده منفی حساب '+a.name,sub:money(bal)+' تومان',accountId:a.id,action:'reconcile'});
+  });
+  issues.forEach(function(x){x.key=issueKey(x);});
+  issues=issues.filter(function(x){return !isIssueDismissed(b,x.key);});
+  issues.sort(function(a,b){return severityRank(a.severity)-severityRank(b.severity)||(groupMeta(a.group).order-groupMeta(b.group).order);});
   return issues;
 }
-function openReview(){enterManagedSheet('reviewSheet',renderReview);}
+function reviewIssues(force){
+  var b=activeBook();
+  var savedAt=(state.meta&&state.meta.savedAt)||0;
+  if(!force&&reviewCache.issues&&reviewCache.bookId===b.id&&reviewCache.savedAt===savedAt)return reviewCache.issues;
+  var issues=computeReviewIssues();
+  reviewCache={bookId:b.id,savedAt:savedAt,issues:issues};
+  return issues;
+}
+function filteredReviewIssues(){
+  var rows=reviewIssues();
+  if(reviewQuickMode)rows=rows.filter(function(x){return x.severity==='urgent'||x.severity==='high';});
+  if(reviewFilter&&reviewFilter!=='all'){
+    if(reviewFilter==='urgent')rows=rows.filter(function(x){return x.severity==='urgent'||x.severity==='high';});
+    else if(reviewFilter==='week')rows=rows.filter(function(x){return x.severity==='week';});
+    else if(reviewFilter==='info')rows=rows.filter(function(x){return x.severity==='info';});
+    else rows=rows.filter(function(x){return x.group===reviewFilter;});
+  }
+  return rows;
+}
+function syncReviewSettingsInputs(){
+  var p=document.getElementById('reviewPhotoMinIn'),d=document.getElementById('reviewSettleDaysIn');
+  if(p)p.value=fa(group(reviewPhotoMin()));
+  if(d)d.value=fa(reviewSettleDays());
+}
+function saveReviewSettingsFromInputs(){
+  var p=document.getElementById('reviewPhotoMinIn'),d=document.getElementById('reviewSettleDaysIn');
+  var photo=parseInt(enDigits(p&&p.value||''),10); var days=parseInt(enDigits(d&&d.value||''),10);
+  if(photo>0)state.settings.reviewPhotoMin=photo;
+  if(days>0)state.settings.reviewSettleDays=days;
+  invalidateReviewCache();persist();
+}
+function renderReviewFilters(allRows){
+  var el=document.getElementById('reviewFilters');if(!el)return;
+  var counts={all:allRows.length,urgent:0,week:0,info:0,inbox:0,docs:0,finance:0,suspect:0,accounts:0};
+  allRows.forEach(function(x){
+    if(x.severity==='urgent'||x.severity==='high')counts.urgent++;
+    else if(x.severity==='week')counts.week++;
+    else counts.info++;
+    counts[x.group]=(counts[x.group]||0)+1;
+  });
+  var chips=[
+    ['all','همه'],['urgent','فوری'],['week','این هفته'],['info','اطلاع'],
+    ['inbox','صندوق'],['docs','سند'],['finance','مالی'],['suspect','مشکوک'],['accounts','حساب']
+  ];
+  el.innerHTML=chips.filter(function(c){return c[0]==='all'||counts[c[0]];}).map(function(c){
+    return '<button type="button" class="review-chip'+(reviewFilter===c[0]?' on':'')+'" data-rf="'+c[0]+'">'+c[1]+'<span class="n">'+fa(counts[c[0]]||0)+'</span></button>';
+  }).join('');
+  el.querySelectorAll('[data-rf]').forEach(function(btn){
+    btn.onclick=function(){reviewFilter=btn.dataset.rf;renderReview();};
+  });
+}
+function openReview(){
+  enterManagedSheet('reviewSheet',function(){
+    syncReviewSettingsInputs();
+    renderReview();
+  });
+}
+function issueActionButtons(x){
+  var html='';
+  if(x.action==='settle')html+='<button data-act="settle" data-id="'+x.txId+'">تسویه</button>';
+  if(x.action==='return')html+='<button data-act="return" data-id="'+x.txId+'">ثبت برگشت</button>';
+  if(x.action==='photo')html+='<button data-act="photo" data-id="'+x.txId+'">افزودن عکس</button>';
+  if(x.action==='inbox')html+='<button data-act="inbox" data-id="'+x.inboxId+'">بررسی فاکتور</button>';
+  if(x.action==='reconcile')html+='<button data-act="reconcile" data-id="'+escapeHtml(x.accountId)+'">تطبیق مانده</button>';
+  if(x.action==='duplicate'){
+    html+='<button data-act="edit" data-id="'+x.txId+'">مشاهده این</button>';
+    if(x.pairId)html+='<button data-act="edit" data-id="'+x.pairId+'">مشاهده جفت</button>';
+    html+='<button class="danger" data-act="deldup" data-id="'+x.txId+'">حذف این</button>';
+  }
+  if(x.action==='edit'||(!x.action&&x.txId))html+='<button data-act="edit" data-id="'+x.txId+'">ویرایش</button>';
+  html+='<button class="alt" data-act="snooze" data-key="'+escapeHtml(x.key)+'">۳ روز بعد</button>';
+  html+='<button class="alt" data-act="ignore" data-key="'+escapeHtml(x.key)+'">نادیده بگیر</button>';
+  return html;
+}
+function rememberReviewScroll(){
+  var sheet=document.getElementById('reviewSheet');
+  if(sheet)reviewScrollTop=sheet.scrollTop||0;
+}
+function restoreReviewScrollAndFocus(){
+  var sheet=document.getElementById('reviewSheet');
+  if(!sheet)return;
+  sheet.scrollTop=reviewScrollTop||0;
+  if(!reviewFocusKey)return;
+  var card=sheet.querySelector('[data-issue-key="'+String(reviewFocusKey).replace(/\\/g,'\\\\').replace(/"/g,'\\"')+'"]');
+  if(card){
+    card.classList.add('hl');
+    try{card.scrollIntoView({block:'nearest',behavior:'smooth'});}catch(e){}
+    setTimeout(function(){card.classList.remove('hl');},1600);
+  }
+  reviewFocusKey=null;
+}
+function pickNextReviewKey(currentKey){
+  var rows=filteredReviewIssues();
+  if(!rows.length)return null;
+  if(!currentKey)return rows[0].key;
+  var idx=rows.findIndex(function(x){return x.key===currentKey;});
+  if(idx<0)return rows[0].key;
+  return (rows[idx+1]||rows[0]||{}).key||null;
+}
+function runReviewAction(act,el){
+  var id=el.dataset.id, key=el.dataset.key;
+  rememberReviewScroll();
+  if(act==='snooze'){dismissReviewIssue(key,'snooze');return;}
+  if(act==='ignore'){dismissReviewIssue(key,'forever');return;}
+  if(act==='deldup'){
+    var tid=+id;
+    if(!confirm('این تراکنش به‌عنوان تکراری حذف شود؟'))return;
+    var book=activeBook(),idx=book.tx.findIndex(function(x){return x.id===tid;});
+    if(idx<0)return;
+    var tx=book.tx[idx];
+    book.tx.splice(idx,1);
+    photoDelAll(tid);idbDel('invoice:'+tid);
+    if(typeof addAudit==='function')addAudit('حذف تکراری',(tx.desc||tx.cat)+' · '+money(tx.amount),tid);
+    invalidateReviewCache();persist();
+    reviewFocusKey=pickNextReviewKey(key);
+    renderReview();updateMenuBadges();render();
+    toast('تراکنش تکراری حذف شد');
+    return;
+  }
+  reviewFocusKey=pickNextReviewKey(key||issueKey({kind:act,txId:+id,inboxId:+id,accountId:id}));
+  if(act==='settle'){
+    openFromReviewCenter(function(){askSettle('one',+id);});
+    return;
+  }
+  if(act==='return'){
+    openFromReviewCenter(function(){
+      openAdd();
+      setTimeout(function(){
+        setType('expense');
+        curCat='برگشت وجه';
+        fillCatGrid();
+        updateAdvancedForm(null,+id);
+        var sel=document.getElementById('neutralLinkIn');
+        if(sel){sel.value=String(id);sel.dispatchEvent(new Event('change'));}
+        var dep=activeBook().tx.find(function(t){return t.id===+id;});
+        if(dep){
+          document.getElementById('amountIn').value=fa(group(neutralRemaining(dep)));
+          document.getElementById('descIn').value='برگشت · '+(dep.desc||dep.cat||'');
+        }
+      },40);
+    });
+    return;
+  }
+  if(act==='photo'){
+    openFromReviewCenter(function(){
+      openEdit(+id);
+      setTimeout(function(){
+        var sections=document.querySelectorAll('#sheet .form-sec');
+        var target=null;
+        sections.forEach(function(s){if(/رسید|عکس|فاکتور/.test(s.textContent||''))target=s;});
+        var box=target||document.getElementById('receiptThumbs');
+        try{(target||box).scrollIntoView({block:'center',behavior:'smooth'});}catch(e){}
+      },80);
+    });
+    return;
+  }
+  if(act==='inbox'){
+    openFromReviewCenter(function(){reviewInboxItem(+id);});
+    return;
+  }
+  if(act==='reconcile'){
+    openFromReviewCenter(function(){
+      openAccounts();
+      setTimeout(function(){
+        var sel=document.getElementById('reconcileAccount');
+        if(sel){sel.value=id;updateReconcileDiff();}
+      },0);
+    });
+    return;
+  }
+  if(act==='edit'){
+    openFromReviewCenter(function(){openEdit(+id);});
+  }
+}
 function renderReview(){
   var el=document.getElementById('reviewList');
+  var qbtn=document.getElementById('reviewQuickBtn');
+  if(qbtn)qbtn.classList.toggle('on',!!reviewQuickMode);
   try{
-    var rows=reviewIssues();
-    var high=rows.filter(function(x){return x.severity==='high';}).length;
-    var summary='<div class="review-summary '+(rows.length?'has-issues':'')+'"><span>'+
-      (rows.length?fa(rows.length)+' مورد نیازمند بررسی':'همه بررسی‌ها انجام شد')+
-      '</span><span>'+(high?fa(high)+' مورد مهم':'بدون مورد مهم')+'</span></div>';
+    var allRows=reviewIssues(true);
+    renderReviewFilters(allRows);
+    var rows=filteredReviewIssues();
+    var urgent=allRows.filter(function(x){return x.severity==='urgent'||x.severity==='high';}).length;
+    var summary='<div class="review-summary '+(allRows.length?'has-issues':'')+'"><span>'+
+      (allRows.length?fa(allRows.length)+' مورد در صف':'صف اقدام خالی است')+
+      '</span><span>'+(urgent?fa(urgent)+' فوری':(allRows.length?'بدون مورد فوری':'آماده ادامه کار'))+'</span></div>';
 
+    if(!allRows.length){
+      el.innerHTML=summary+'<div class="empty"><div class="big">✅</div>موردی برای اقدام باقی نمانده است.<br><small>می‌توانی ماه را ببندی یا پشتیبان کامل بگیری.</small>'+
+        '<div class="review-empty-cta"><button type="button" id="reviewGoCloseMonth">بستن ماه مالی</button><button type="button" class="alt" id="reviewGoZip">پشتیبان ZIP</button></div></div>';
+      var c1=document.getElementById('reviewGoCloseMonth'),c2=document.getElementById('reviewGoZip');
+      if(c1)c1.onclick=function(){hideSheets();openCloseMonth();};
+      if(c2)c2.onclick=function(){hideSheets();exportFullZip();};
+      return;
+    }
     if(!rows.length){
-      el.innerHTML=summary+'<div class="empty"><div class="big">✅</div>موردی برای اقدام باقی نمانده است.<br><small>همه اسناد فعلاً کامل هستند و مورد باز یا مشکوکی دیده نشد.</small></div>';
+      el.innerHTML=summary+'<div class="empty">با این فیلتر موردی نیست.<br><small>فیلتر را عوض کن یا پاکسازی سریع را خاموش کن.</small></div>';
       return;
     }
 
-    el.innerHTML=summary+'<div class="advanced-list">'+rows.map(function(x){
-      return '<div class="advanced-card"><div class="advanced-card-head"><div class="advanced-card-title">'+escapeHtml(x.title)+'</div>'+
-        '<span class="review-severity '+(x.severity==='high'?'high':'')+'">'+(x.severity==='high'?'مهم':'بررسی')+'</span></div>'+
-        '<div class="advanced-card-sub">'+escapeHtml(x.sub)+'</div><div class="advanced-actions">'+
-        (x.txId?'<button data-issue-tx="'+x.txId+'">مشاهده تراکنش</button>':'')+
-        (x.inboxId?'<button data-issue-inbox="'+x.inboxId+'">بررسی فاکتور</button>':'')+
-        (x.accountId?'<button data-issue-account="'+x.accountId+'">تطبیق مانده</button>':'')+
-        '</div></div>';
-    }).join('')+'</div>';
+    if(reviewQuickMode){
+      var one=rows[0];
+      el.innerHTML=summary+'<div class="closed-note">حالت پاکسازی سریع: فقط مورد فوری بعدی</div><div class="advanced-list">'+
+        '<div class="advanced-card review-card hl" data-issue-key="'+escapeHtml(one.key)+'"><div class="advanced-card-head"><div class="advanced-card-title">'+escapeHtml(one.title)+'</div>'+
+        '<span class="review-severity '+one.severity+'">'+severityLabel(one.severity)+'</span></div>'+
+        '<div class="advanced-card-sub">'+escapeHtml(one.sub)+'</div><div class="advanced-actions">'+issueActionButtons(one)+'</div></div></div>';
+    }else{
+      var groups={};
+      rows.forEach(function(x){(groups[x.group]=groups[x.group]||[]).push(x);});
+      var order=Object.keys(groups).sort(function(a,b){return groupMeta(a).order-groupMeta(b).order;});
+      var html=summary;
+      order.forEach(function(g){
+        html+='<div class="review-group-title">'+groupMeta(g).title+' · '+fa(groups[g].length)+'</div><div class="advanced-list">';
+        html+=groups[g].map(function(x){
+          return '<div class="advanced-card review-card" data-issue-key="'+escapeHtml(x.key)+'"><div class="advanced-card-head"><div class="advanced-card-title">'+escapeHtml(x.title)+'</div>'+
+            '<span class="review-severity '+x.severity+'">'+severityLabel(x.severity)+'</span></div>'+
+            '<div class="advanced-card-sub">'+escapeHtml(x.sub)+'</div><div class="advanced-actions">'+issueActionButtons(x)+'</div></div>';
+        }).join('');
+        html+='</div>';
+      });
+      el.innerHTML=html;
+    }
 
-    el.querySelectorAll('[data-issue-tx]').forEach(function(btn){
-      btn.onclick=function(){
-        var id=+btn.dataset.issueTx;
-        openFromReviewCenter(function(){openEdit(id);});
-      };
+    el.querySelectorAll('[data-act]').forEach(function(btn){
+      btn.onclick=function(){runReviewAction(btn.dataset.act,btn);};
     });
-    el.querySelectorAll('[data-issue-inbox]').forEach(function(btn){
-      btn.onclick=function(){
-        var id=+btn.dataset.issueInbox;
-        openFromReviewCenter(function(){reviewInboxItem(id);});
-      };
-    });
-    el.querySelectorAll('[data-issue-account]').forEach(function(btn){
-      btn.onclick=function(){
-        var accountId=btn.dataset.issueAccount;
-        openFromReviewCenter(function(){
-          openAccounts();
-          setTimeout(function(){
-            var sel=document.getElementById('reconcileAccount');
-            if(sel){
-              sel.value=accountId;
-              updateReconcileDiff();
-            }
-          },0);
-        });
-      };
-    });
+    setTimeout(restoreReviewScrollAndFocus,30);
   }catch(err){
     console.error('review center error',err);
     el.innerHTML='<div class="empty"><div class="big">⚠️</div>مرکز بررسی با خطا روبه‌رو شد.<br><small>'+escapeHtml(err&&err.message?err.message:'خطای ناشناخته')+'</small></div>';
@@ -4189,12 +4488,25 @@ function renderReview(){
 }
 
 function renderTodayDashboard(){
-  var j=todayJ(),rows=activeBook().tx.filter(function(t){return t.jy===j.jy&&t.jm===j.jm&&t.jd===j.jd;}),inc=0,exp=0;rows.forEach(function(t){if(t.type==='income')inc+=t.amount;if(t.type==='expense')exp+=t.amount;});var issues=reviewIssues().length;
+  var j=todayJ(),rows=activeBook().tx.filter(function(t){return t.jy===j.jy&&t.jm===j.jm&&t.jd===j.jd;}),inc=0,exp=0;rows.forEach(function(t){if(t.type==='income')inc+=t.amount;if(t.type==='expense')exp+=t.amount;});
+  var issues=reviewIssues(),urgent=issues.filter(function(x){return x.severity==='urgent'||x.severity==='high';}).length;
   document.getElementById('todayDashDate').textContent=fa(j.jd)+' '+MONTHS[j.jm-1];
-  document.getElementById('todayDashGrid').innerHTML='<div class="today-mini"><b>'+fa(rows.length)+'</b><span>تراکنش</span></div><div class="today-mini"><b style="color:var(--expense)">'+money(exp)+'</b><span>هزینه امروز</span></div><div class="today-mini"><b>'+money(totalLiquidBalance())+'</b><span>موجودی حساب‌ها</span></div><div class="today-mini"><b style="color:'+(issues?'var(--expense)':'var(--income)')+'">'+fa(issues)+'</b><span>نیازمند بررسی</span></div>';
+  document.getElementById('todayDashGrid').innerHTML='<div class="today-mini"><b>'+fa(rows.length)+'</b><span>تراکنش</span></div><div class="today-mini"><b style="color:var(--expense)">'+money(exp)+'</b><span>هزینه امروز</span></div><div class="today-mini"><b>'+money(totalLiquidBalance())+'</b><span>موجودی حساب‌ها</span></div><div class="today-mini"><b style="color:'+(urgent?'var(--expense)':(issues.length?'var(--gold)':'var(--income)'))+'">'+fa(issues.length)+'</b><span>نیازمند بررسی'+(urgent?' · '+fa(urgent)+' فوری':'')+'</span></div>';
 }
 function decorateTransactions(){
-  document.querySelectorAll('#list .tx').forEach(function(el){var t=activeBook().tx.find(function(x){return x.id===+el.dataset.id;}),cat=el.querySelector('.cat');if(!t||!cat)return;var txt=' · '+accountNameForTx(t);if(!cat.textContent.includes((accountById(txAccountId(t))||{}).name||''))cat.insertAdjacentHTML('beforeend','<span class="neutral-link-status">'+escapeHtml(accountNameForTx(t))+'</span>');if(t.type==='neutral_in'){var rem=neutralRemaining(t);cat.insertAdjacentHTML('beforeend','<span class="neutral-link-status">'+(rem?'باز: '+money(rem):'تسویه کامل')+'</span>');}});
+  document.querySelectorAll('#list .tx').forEach(function(el){
+    var t=activeBook().tx.find(function(x){return x.id===+el.dataset.id;}),cat=el.querySelector('.cat');
+    if(!t||!cat)return;
+    if(!cat.textContent.includes((accountById(txAccountId(t))||{}).name||''))cat.insertAdjacentHTML('beforeend','<span class="neutral-link-status">'+escapeHtml(accountNameForTx(t))+'</span>');
+    if(t.type==='neutral_in'){var rem=neutralRemaining(t);cat.insertAdjacentHTML('beforeend','<span class="neutral-link-status">'+(rem?'باز: '+money(rem):'تسویه کامل')+'</span>');}
+  });
+  var urgentIds={};
+  reviewIssues().forEach(function(x){if(x.txId&&(x.severity==='urgent'||x.severity==='high'))urgentIds[x.txId]=true;});
+  document.querySelectorAll('#list .tx').forEach(function(el){
+    if(!urgentIds[+el.dataset.id])return;
+    var desc=el.querySelector('.desc');
+    if(desc&&!desc.querySelector('.review-need-badge'))desc.insertAdjacentHTML('beforeend','<span class="review-need-badge" title="نیازمند بررسی">!</span>');
+  });
 }
 function updateMenuBadges(){
   var inbox=(activeBook().receiptInbox||[]).length,issues=reviewIssues().length,im=document.getElementById('inboxMenuCount'),rm=document.getElementById('reviewMenuCount');
@@ -4289,13 +4601,30 @@ document.getElementById('reviewBtn').onclick=openReview;
 document.getElementById('reviewClose').onclick=function(){
   returnToReviewCenter=false;
   returnToSheetId=null;
+  reviewQuickMode=false;
   hideSheets();
 };
 document.getElementById('reviewRefresh').onclick=function(){
+  saveReviewSettingsFromInputs();
+  invalidateReviewCache();
   renderReview();
   updateMenuBadges();
-  toast('بررسی دوباره انجام شد ✓');
+  renderTodayDashboard();
+  toast('بررسی به‌روز شد');
 };
+document.getElementById('reviewQuickBtn').onclick=function(){
+  reviewQuickMode=!reviewQuickMode;
+  if(reviewQuickMode)reviewFilter='urgent';
+  renderReview();
+};
+['reviewPhotoMinIn','reviewSettleDaysIn'].forEach(function(id){
+  var el=document.getElementById(id);if(!el)return;
+  el.addEventListener('change',function(){saveReviewSettingsFromInputs();renderReview();updateMenuBadges();renderTodayDashboard();});
+  el.addEventListener('input',function(e){
+    if(id==='reviewPhotoMinIn'){var raw=enDigits(e.target.value);e.target.value=raw?fa(group(raw)):'';}
+    else{var raw2=enDigits(e.target.value);e.target.value=raw2?fa(raw2):'';}
+  });
+});
 document.getElementById('templatesBtn').onclick=openTemplates;document.getElementById('rulesBtn').onclick=openRules;document.getElementById('ruleType').onchange=renderRuleSelectors;document.getElementById('addRuleBtn').onclick=addRule;document.getElementById('compareBtn').onclick=openCompare;document.getElementById('closeMonthBtn').onclick=openCloseMonth;document.getElementById('toggleMonthClose').onclick=toggleMonthClose;document.getElementById('saveMonthPin').onclick=saveMonthPin;document.getElementById('historyBtn').onclick=openHistory;document.getElementById('encryptedBackupBtn').onclick=function(){var act=confirm('برای بازیابی فایل رمزدار «تأیید» را بزن.\nبرای ساخت پشتیبان جدید «لغو» را بزن.');if(act)document.getElementById('encryptedIn').click();else exportEncryptedBackup();};document.getElementById('encryptedIn').onchange=function(e){if(e.target.files[0])importEncryptedBackup(e.target.files[0]);e.target.value='';};
 
 // Ensure the enhanced renderer is used by common controls.
