@@ -878,6 +878,15 @@
   .quick-template:active{background:var(--income-soft);}
   .quick-template-add{white-space:nowrap;padding:5px 9px;border-radius:13px;background:var(--gold-soft);color:var(--brand-deep);font-size:10.5px;font-weight:900;border:1px dashed var(--gold);}
   .account-hint,.link-hint{font-size:10.5px;color:var(--muted);margin-top:4px;}
+
+  .bank-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:var(--bg);border:1px solid var(--line);margin-bottom:10px;font-size:12.5px;font-weight:800;}
+  .bank-toggle input{width:18px;height:18px;}
+  .bank-sender{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:12.5px;}
+  .bank-sender:last-child{border-bottom:none;}
+  .bank-sender label{flex:1;font-weight:800;}
+  .bank-raw{white-space:pre-wrap;direction:rtl;font-size:11px;line-height:1.7;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-top:6px;color:var(--muted);max-height:110px;overflow:auto;}
+  .bank-status{font-size:10.5px;font-weight:800;color:var(--brand);margin-top:6px;}
+  .bank-status.warn{color:var(--expense);}
   .feature-count{margin-inline-start:auto;min-width:22px;height:22px;padding:0 6px;border-radius:12px;background:var(--expense);color:#fff;display:grid;place-items:center;font-size:10px;font-weight:900;}
   .advanced-list{display:flex;flex-direction:column;gap:8px;}
   .advanced-card{background:var(--bg);border:1px solid var(--line);border-radius:13px;padding:10px 11px;}
@@ -1162,6 +1171,7 @@
   <div class="menu-item" id="accountsBtn"><span class="mi">🏦</span><div class="txt">حساب‌ها و تطبیق مانده<div class="sub">بانک، نقدی، تنخواه، انتقال و اصلاح مانده</div></div></div>
   <div class="menu-item" id="globalSearchBtn"><span class="mi">🔎</span><div class="txt">جستجوی سراسری<div class="sub">بین همهٔ ماه‌ها و دفترها</div></div></div>
   <div class="menu-item" id="recurringBtn"><span class="mi">🔁</span><div class="txt">تراکنش‌های تکراری ماهانه<div class="sub">اجاره، حقوق، اقساط و ثبت خودکار</div></div></div>
+  <div class="menu-item" id="bankSmsBtn"><span class="mi">🏦</span><div class="txt">پیامک بانک<div class="sub">پیشنهاد تراکنش از SMS — فقط با تأیید شما</div></div><span class="feature-count" id="bankSmsMenuCount" style="display:none">۰</span></div>
   <div class="menu-item" id="receiptInboxBtn"><span class="mi">📥</span><div class="txt">صندوق ورودی فاکتورها<div class="sub">رسیدهای ثبت‌نشده و تشخیص متن</div></div><span class="feature-count" id="inboxMenuCount" style="display:none">۰</span></div>
   <div class="menu-item" id="reviewBtn"><span class="mi">🔎</span><div class="txt">موارد نیازمند اقدام<div class="sub">صف اقدام با فیلتر، تسویه سریع و نادیده‌گرفتن</div></div><span class="feature-count" id="reviewMenuCount" style="display:none">۰</span></div>
   <div class="menu-item" id="templatesBtn"><span class="mi">⚡</span><div class="txt">قالب‌های ثبت سریع<div class="sub">پر کردن سریع فرم بدون ثبت خودکار</div></div></div>
@@ -1406,6 +1416,35 @@
   <input type="file" id="inboxPhotoIn" accept="image/*" multiple style="display:none">
 </div>
 
+
+<!-- bank sms inbox -->
+<div class="sheet" id="bankSmsSheet">
+  <div class="grab"></div>
+  <h2>پیامک بانک</h2>
+  <p class="encrypt-note">پیام‌های بانکی خوانده می‌شوند و فقط به‌صورت پیشنهاد در صف می‌آیند؛ هیچ تراکنشی خودکار ثبت نمی‌شود.</p>
+  <div class="bank-toggle"><span>فعال‌سازی خواندن پیامک بانک</span><input type="checkbox" id="bankSmsEnabled"></div>
+  <div class="bank-status" id="bankSmsPermStatus">وضعیت دسترسی: —</div>
+  <div class="rep-actions" style="margin:10px 0">
+    <button type="button" class="save-btn" id="bankSmsAskPerm" style="margin:0">اجازه دسترسی SMS</button>
+    <button type="button" class="save-btn" id="bankSmsScanNow" style="margin:0;background:var(--gold);color:var(--brand-deep)">اسکن پیام‌های جدید</button>
+  </div>
+  <div class="section-caption">فرستنده‌های بانکی</div>
+  <div id="bankSmsSenders"></div>
+  <div class="advanced-form-row" style="margin-top:8px">
+    <input id="bankSmsCustomSender" placeholder="فرستنده سفارشی؛ مثلاً 30001234" style="direction:ltr;text-align:left">
+    <button type="button" class="save-btn" id="bankSmsAddSender" style="margin:0;flex:0 0 auto;padding:9px 12px">افزودن</button>
+  </div>
+  <div class="section-caption">واحد مبلغ پیامک</div>
+  <div class="advanced-form-row">
+    <select id="bankSmsUnit">
+      <option value="auto">خودکار (ریال÷۱۰ → تومان)</option>
+      <option value="toman">همه را تومان بگیر</option>
+      <option value="rial">همه را ریال بگیر (÷۱۰)</option>
+    </select>
+  </div>
+  <div class="section-caption">پیشنهادهای در انتظار تأیید <button class="add-mini" id="bankSmsRefreshList" type="button">↻</button></div>
+  <div id="bankSmsList"></div>
+</div>
 <!-- review center -->
 <div class="sheet" id="reviewSheet">
   <div class="review-sticky-head">
@@ -3159,6 +3198,7 @@ function reopenPreviousSheet(){
   if(sheetId){
     setTimeout(function(){
       if(sheetId==='receiptInboxSheet')renderReceiptInbox();
+      if(sheetId==='bankSmsSheet')renderBankSmsSheet();
       showSheet(sheetId);
     },0);
   }else if(shouldReturnReview){
@@ -3916,6 +3956,7 @@ normalizeState=function(s){
   if(typeof s.settings.monthPinHash!=='string')s.settings.monthPinHash='';
   if(!(+s.settings.reviewPhotoMin>0))s.settings.reviewPhotoMin=1000000;
   if(!(+s.settings.reviewSettleDays>0))s.settings.reviewSettleDays=7;
+  s.settings.bankSms=normalizeBankSmsSettings(s.settings.bankSms);
   (s.books||[]).forEach(ensureAdvancedBook);
   return s;
 };
@@ -3934,6 +3975,9 @@ function ensureAdvancedBook(b){
   if(!Array.isArray(b.audit))b.audit=[];
   if(!Array.isArray(b.receiptInbox))b.receiptInbox=[];
   if(!b.reviewDismissed||typeof b.reviewDismissed!=='object')b.reviewDismissed={};
+  if(!Array.isArray(b.bankSmsInbox))b.bankSmsInbox=[];
+  if(!b.bankSmsSeen||typeof b.bankSmsSeen!=='object')b.bankSmsSeen={};
+  if(!Array.isArray(b.bankSmsRules))b.bankSmsRules=[];
   (b.tx||[]).forEach(function(t){
     if(!t.accountId)t.accountId=t.source==='personal'?'personal':'fund';
     var acc=(b.accounts||[]).find(function(a){return a.id===t.accountId;});
@@ -4220,6 +4264,10 @@ function computeReviewIssues(){
   (b.receiptInbox||[]).forEach(function(x){
     issues.push({kind:'inbox',group:'inbox',severity:'urgent',title:'فاکتور بررسی‌نشده',sub:x.desc||'عکس داخل صندوق ورودی',inboxId:x.id,action:'inbox'});
   });
+  (b.bankSmsInbox||[]).filter(function(x){return !x.status||x.status==='pending';}).forEach(function(x){
+    var p=x.parsed||{};
+    issues.push({kind:'banksms',group:'inbox',severity:'urgent',title:'پیامک بانک منتظر تأیید',sub:(p.desc||x.sender||'بانک')+' · '+(p.amount?money(p.amount):'مبلغ؟')+(p.type==='income'?' · واریز':' · برداشت'),bankSmsId:x.id,action:'banksms'});
+  });
   (b.tx||[]).forEach(function(t){
     if(isAutoSystemTx(t))return;
     if(!t.docNo)issues.push({kind:'docno',group:'docs',severity:'urgent',title:'سند بدون شماره',sub:(t.desc||t.cat)+' · '+jDateStr(t,false),txId:t.id,action:'edit'});
@@ -4317,6 +4365,7 @@ function issueActionButtons(x){
   if(x.action==='return')html+='<button data-act="return" data-id="'+x.txId+'">ثبت برگشت</button>';
   if(x.action==='photo')html+='<button data-act="photo" data-id="'+x.txId+'">افزودن عکس</button>';
   if(x.action==='inbox')html+='<button data-act="inbox" data-id="'+x.inboxId+'">بررسی فاکتور</button>';
+  if(x.action==='banksms')html+='<button data-act="banksms" data-id="'+x.bankSmsId+'">بررسی پیامک</button>';
   if(x.action==='reconcile')html+='<button data-act="reconcile" data-id="'+escapeHtml(x.accountId)+'">تطبیق مانده</button>';
   if(x.action==='duplicate'){
     html+='<button data-act="edit" data-id="'+x.txId+'">مشاهده این</button>';
@@ -4412,6 +4461,10 @@ function runReviewAction(act,el){
   }
   if(act==='inbox'){
     openFromReviewCenter(function(){reviewInboxItem(+id);});
+    return;
+  }
+  if(act==='banksms'){
+    openFromReviewCenter(function(){openBankSms(); setTimeout(function(){ highlightBankSmsItem(+id); },80);});
     return;
   }
   if(act==='reconcile'){
@@ -4511,6 +4564,11 @@ function decorateTransactions(){
 function updateMenuBadges(){
   var inbox=(activeBook().receiptInbox||[]).length,issues=reviewIssues().length,im=document.getElementById('inboxMenuCount'),rm=document.getElementById('reviewMenuCount');
   im.textContent=fa(inbox);im.style.display=inbox?'grid':'none';rm.textContent=fa(issues);rm.style.display=issues?'grid':'none';
+  var bm=document.getElementById('bankSmsMenuCount');
+  if(bm){
+    var bn=(activeBook().bankSmsInbox||[]).filter(function(x){return !x.status||x.status==='pending';}).length;
+    bm.textContent=fa(bn);bm.style.display=bn?'grid':'none';
+  }
 }
 var baseRender=render;
 render=function(){baseRender();if(!activeBook().personalOnly){document.getElementById('balLbl').textContent='موجودی کل حساب‌ها';document.getElementById('balAmt').innerHTML=money(totalLiquidBalance())+'<span class="u">تومان</span>';}if(monthClosed(activeBook(),view))document.getElementById('mLabel').textContent+=' 🔒';renderTodayDashboard();decorateTransactions();updateMenuBadges();};
@@ -4558,7 +4616,7 @@ async function importEncryptedBackup(file){
 }
 
 var baseOpenAdd=openAdd;
-openAdd=function(){currentInboxReviewId=null;currentTemplateApplyId=null;baseOpenAdd();setTimeout(function(){renderAccountOptions();renderQuickTemplates();updateNeutralLinkField();},0);};
+openAdd=function(){currentInboxReviewId=null;currentTemplateApplyId=null;if(!window.__keepBankSmsPending)window.__pendingBankSmsId=null;baseOpenAdd();setTimeout(function(){renderAccountOptions();renderQuickTemplates();updateNeutralLinkField();},0);};
 var baseOpenEdit=openEdit;
 openEdit=function(id){baseOpenEdit(id);var t=activeBook().tx.find(function(x){return x.id===id;});if(t)setTimeout(function(){renderAccountOptions(txAccountId(t));updateNeutralLinkField(t.linkedTxId);},0);};
 
@@ -5017,6 +5075,393 @@ settleAll=function(from){
   persist(); renderPersonalList(); renderDebtBanner(); render();
   toast('همه تسویه شدند ✓ ('+(from==='fund'?'از تنخواه':'به من')+')');
 };
+
+/* ===== Bank SMS → suggestion queue (confirm only) ===== */
+function defaultBankSmsSenders(){
+  return [
+    {id:'mellat',label:'بانک ملت',match:['mellat','bmellat','بانک ملت','ملت'],enabled:true},
+    {id:'melli',label:'بانک ملی',match:['bmi','bmimelli','بانک ملی','ملی'],enabled:true},
+    {id:'saderat',label:'بانک صادرات',match:['bsi','saderat','صادرات'],enabled:true},
+    {id:'tejarat',label:'بانک تجارت',match:['tejarat','تجارت'],enabled:true},
+    {id:'sepah',label:'بانک سپه',match:['sepah','سپه'],enabled:true},
+    {id:'saman',label:'بانک سامان',match:['saman','سامان'],enabled:true},
+    {id:'pasargad',label:'بانک پاسارگاد',match:['pasargad','bpi','پاسارگاد'],enabled:true},
+    {id:'ayandeh',label:'بانک آینده',match:['ayandeh','آینده'],enabled:true},
+    {id:'shahr',label:'بانک شهر',match:['shahr','بانک شهر'],enabled:true},
+    {id:'maskan',label:'بانک مسکن',match:['maskan','مسکن'],enabled:true},
+    {id:'keshavarzi',label:'بانک کشاورزی',match:['bki','keshavarzi','کشاورزی'],enabled:true},
+    {id:'refah',label:'بانک رفاه',match:['refah','رفاه'],enabled:true},
+    {id:'resalat',label:'رسالت',match:['resalat','رسالت'],enabled:true},
+    {id:'bluebank',label:'بلو بانک',match:['bluebank','blu','بلو'],enabled:false},
+    {id:'custom',label:'سفارشی',match:[],enabled:true,custom:true}
+  ];
+}
+function normalizeBankSmsSettings(cfg){
+  cfg=cfg&&typeof cfg==='object'?cfg:{};
+  var base=defaultBankSmsSenders();
+  var byId={};(cfg.senders||[]).forEach(function(s){if(s&&s.id)byId[s.id]=s;});
+  var senders=base.map(function(d){
+    var o=byId[d.id];
+    return {id:d.id,label:d.label,match:(o&&o.match)||d.match,enabled:o?!!o.enabled:!!d.enabled,custom:!!d.custom};
+  });
+  (cfg.senders||[]).forEach(function(s){
+    if(s&&s.id&&s.custom&&!senders.some(function(x){return x.id===s.id;})){
+      senders.push({id:s.id,label:s.label||s.id,match:s.match||[s.id],enabled:s.enabled!==false,custom:true});
+    }
+  });
+  return {
+    enabled:!!cfg.enabled,
+    unit:cfg.unit||'auto',
+    senders:senders,
+    customMatches:Array.isArray(cfg.customMatches)?cfg.customMatches.filter(Boolean):[],
+    lastScanAt:+cfg.lastScanAt||0
+  };
+}
+function bankSmsCfg(){ if(!state.settings.bankSms) state.settings.bankSms=normalizeBankSmsSettings(null); return state.settings.bankSms; }
+function bankSmsPlugin(){
+  try{
+    if(!(window.Capacitor&&isCapacitorApp())) return null;
+    if(Capacitor.Plugins&&Capacitor.Plugins.BankSms) return Capacitor.Plugins.BankSms;
+    if(typeof Capacitor.registerPlugin==='function') return Capacitor.registerPlugin('BankSms');
+  }catch(e){}
+  return null;
+}
+function activeBankSmsMatches(){
+  var cfg=bankSmsCfg(), out=[];
+  (cfg.senders||[]).forEach(function(s){
+    if(!s.enabled)return;
+    (s.match||[]).forEach(function(m){ if(m) out.push(String(m)); });
+  });
+  (cfg.customMatches||[]).forEach(function(m){ if(m) out.push(String(m)); });
+  return out;
+}
+function faDigitsToEn(s){return String(s||'').replace(/[۰-۹]/g,function(d){return '۰۱۲۳۴۵۶۷۸۹'.indexOf(d);}).replace(/[٠-٩]/g,function(d){return '٠١٢٣٤٥٦٧٨٩'.indexOf(d);});}
+function parseBankSmsBody(body, unitMode){
+  body=faDigitsToEn(String(body||''));
+  var lower=body.toLowerCase();
+  var skip=/رمز|otp|one[- ]?time|ورود|login|code\s*:|کد\s*[:：]|فعالسازی|فعال‌سازی|اعتبارسنجی/i.test(body);
+  if(skip && !/(برداشت|واریز|خرید|پرداخت|مانده|موجودی)/.test(body)) return null;
+  var debit=/برداشت|خرید|پرداخت|کسر|انتقال وجه از|برداشت از|پرداخت قبض|pos|خرید از/.test(body);
+  var credit=/واریز|دریافت|واریز به|دریافتی|شارژ حساب|refund|برگشت وجه به/.test(body);
+  if(/ناموفق|مورد تأیید قرار نگرفت|insufficient|عدم کفایت|لغو شد/.test(body)) return null;
+  var type=null;
+  if(debit&&!credit) type='expense';
+  else if(credit&&!debit) type='income';
+  else if(debit) type='expense';
+  else if(credit) type='income';
+  else return null;
+  var amount=0, unit='toman', amountRaw=null;
+  var patterns=[
+    /مبلغ[:\s]*([0-9][0-9,]{2,})/i,
+    /amount[:\s]*([0-9][0-9,]{2,})/i,
+    /([0-9][0-9,]{3,})\s*(ریال|rial|تومان|tomans?)/i,
+    /(?:^|\s)([0-9]{4,})(?:\s|$)/
+  ];
+  for(var i=0;i<patterns.length;i++){
+    var m=body.match(patterns[i]);
+    if(m){ amountRaw=parseInt(String(m[1]).replace(/,/g,''),10); if(m[2]) unit=/ریال|rial/i.test(m[2])?'rial':'toman'; if(amountRaw>0) break; }
+  }
+  if(!amountRaw||amountRaw<=0) return null;
+  if(/ریال|rial/i.test(body)) unit='rial';
+  if(/تومان|toman/i.test(body)) unit='toman';
+  if(unitMode==='rial') unit='rial';
+  if(unitMode==='toman') unit='toman';
+  amount=unit==='rial'?Math.round(amountRaw/10):amountRaw;
+  if(amount<=0) return null;
+  var merchant='';
+  var mm=body.match(/(?:خرید از|پذیرنده|فروشگاه|فروشنده|در)\s*[:：]?\s*([^\n\r]{2,40})/i);
+  if(mm) merchant=mm[1].replace(/موجودی.*$/,'').trim();
+  var card='';
+  var cm=body.match(/(?:کارت|card)\s*[:：]?\s*[*xX×٫\.]*([0-9]{4})/i)||body.match(/\*{2,}([0-9]{4})/);
+  if(cm) card=cm[1];
+  var descParts=[];
+  if(merchant) descParts.push(merchant);
+  else descParts.push(type==='income'?'واریز بانکی':'برداشت بانکی');
+  if(card) descParts.push('کارت '+card);
+  var confidence=0.55;
+  if(merchant) confidence+=0.15;
+  if(/مبلغ/.test(body)) confidence+=0.1;
+  if(type) confidence+=0.1;
+  return {amount:amount,type:type,unit:unit,amountRaw:amountRaw,desc:descParts.join(' · '),merchant:merchant,card:card,confidence:Math.min(0.98,confidence)};
+}
+function bankSmsFingerprint(msg){
+  return String(msg.id||'')+'|'+(msg.date||'')+'|'+String(msg.address||'')+'|'+String(msg.body||'').slice(0,120);
+}
+function applyBankSmsRules(item){
+  var b=activeBook(), body=String(item.body||''), rules=b.bankSmsRules||[];
+  for(var i=0;i<rules.length;i++){
+    var r=rules[i];
+    if(!r||!r.contains) continue;
+    if(body.indexOf(r.contains)>=0){
+      item.parsed=item.parsed||{};
+      if(r.cat) item.parsed.cat=r.cat;
+      if(r.accountId) item.parsed.accountId=r.accountId;
+      if(r.type) item.parsed.type=r.type;
+      item.parsed.ruleApplied=r.contains;
+      break;
+    }
+  }
+}
+function upsertBankSmsSuggestion(msg){
+  var b=activeBook(); ensureAdvancedBook(b);
+  var fp=bankSmsFingerprint(msg);
+  if(b.bankSmsSeen[fp]||b.bankSmsSeen[String(msg.id)]) return false;
+  var parsed=parseBankSmsBody(msg.body, bankSmsCfg().unit);
+  if(!parsed){ b.bankSmsSeen[fp]=1; return false; }
+  // duplicate vs existing txs (same day-ish amount+desc)
+  var approxDate=msg.date?new Date(msg.date):new Date();
+  var j=g2j(approxDate.getFullYear(),approxDate.getMonth()+1,approxDate.getDate());
+  var dupTx=(b.tx||[]).some(function(t){
+    return t.amount===parsed.amount && t.type===parsed.type && Math.abs(jcmp(t)-jcmp(j))<=1 && (t.bankSmsFp===fp || (t.desc&&parsed.desc&&t.desc.indexOf(parsed.merchant||'__none__')>=0));
+  });
+  if(dupTx){ b.bankSmsSeen[fp]=1; return false; }
+  var already=(b.bankSmsInbox||[]).some(function(x){return x.fp===fp||x.smsId===String(msg.id);});
+  if(already){ b.bankSmsSeen[fp]=1; return false; }
+  var item={id:Date.now()+Math.floor(Math.random()*9999),smsId:String(msg.id||''),fp:fp,sender:msg.address||'',body:msg.body||'',dateMs:+msg.date||Date.now(),parsed:parsed,status:'pending',createdAt:Date.now()};
+  applyBankSmsRules(item);
+  b.bankSmsInbox.unshift(item);
+  b.bankSmsSeen[fp]=1;
+  if(item.smsId) b.bankSmsSeen[item.smsId]=1;
+  if(b.bankSmsInbox.length>200) b.bankSmsInbox.length=200;
+  return true;
+}
+async function scanBankSms(opts){
+  opts=opts||{};
+  var cfg=bankSmsCfg();
+  if(!cfg.enabled&&!opts.force) return {ok:false,reason:'disabled'};
+  var plugin=bankSmsPlugin();
+  if(!plugin){ if(opts.toast) toast('خواندن پیامک فقط در اپ اندروید فعال است'); return {ok:false,reason:'no-plugin'}; }
+  var matches=activeBankSmsMatches();
+  if(!matches.length){ if(opts.toast) toast('حداقل یک فرستنده بانک را فعال کن'); return {ok:false,reason:'no-senders'}; }
+  try{
+    var perm=await plugin.checkPermissions();
+    if(!(perm&&String(perm.sms).toLowerCase()==='granted')){
+      if(opts.toast) toast('اول اجازه دسترسی SMS را بده');
+      updateBankSmsPermStatus(perm);
+      return {ok:false,reason:'perm'};
+    }
+    var since=cfg.lastScanAt||0;
+    // first scan: last 7 days
+    if(!since) since=Date.now()-7*24*60*60*1000;
+    var res=await plugin.readInbox({senders:matches, sinceMs:since-60000, limit:120});
+    var msgs=(res&&res.messages)||[];
+    var added=0;
+    msgs.forEach(function(m){ if(upsertBankSmsSuggestion(m)) added++; });
+    cfg.lastScanAt=Date.now();
+    if(typeof invalidateReviewCache==='function') invalidateReviewCache();
+    persist(); updateMenuBadges(); renderTodayDashboard();
+    if(document.getElementById('bankSmsSheet')&&document.getElementById('bankSmsSheet').classList.contains('show')) renderBankSmsSheet();
+    if(opts.toast) toast(added? (fa(added)+' پیشنهاد بانکی جدید'):'پیامک بانکی جدیدی نبود');
+    return {ok:true,added:added,scanned:msgs.length};
+  }catch(e){
+    if(opts.toast) toast('خواندن پیامک ناموفق بود');
+    return {ok:false,reason:String(e&&e.message||e)};
+  }
+}
+function updateBankSmsPermStatus(perm){
+  var el=document.getElementById('bankSmsPermStatus'); if(!el) return;
+  if(!isCapacitorApp()){ el.textContent='این قابلیت فقط داخل اپ اندروید کار می‌کند.'; el.className='bank-status warn'; return; }
+  var st=perm&&perm.sms?String(perm.sms):'—';
+  var granted=String(st).toLowerCase()==='granted';
+  el.textContent='وضعیت دسترسی SMS: '+(granted?'مجاز ✓':st);
+  el.className='bank-status'+(granted?'':' warn');
+}
+async function refreshBankSmsPermStatus(){
+  var plugin=bankSmsPlugin();
+  if(!plugin){ updateBankSmsPermStatus(null); return; }
+  try{ updateBankSmsPermStatus(await plugin.checkPermissions()); }
+  catch(e){ updateBankSmsPermStatus(null); }
+}
+function openBankSms(){
+  enterManagedSheet('bankSmsSheet',function(){ renderBankSmsSheet(); refreshBankSmsPermStatus(); if(bankSmsCfg().enabled) scanBankSms({toast:false}); });
+}
+function renderBankSmsSenders(){
+  var cfg=bankSmsCfg(), el=document.getElementById('bankSmsSenders'); if(!el) return;
+  el.innerHTML=(cfg.senders||[]).filter(function(s){return !s.custom||(s.match||[]).length;}).map(function(s){
+    return '<div class="bank-sender"><input type="checkbox" data-bsid="'+escapeHtml(s.id)+'" '+(s.enabled?'checked':'')+'><label>'+escapeHtml(s.label)+'<div class="advanced-card-sub" style="margin:0">'+escapeHtml((s.match||[]).slice(0,3).join(' · '))+'</div></label></div>';
+  }).join('') + ((cfg.customMatches||[]).length?('<div class="section-caption">سفارشی‌ها</div>'+cfg.customMatches.map(function(m,i){
+    return '<div class="bank-sender"><label style="direction:ltr;text-align:left">'+escapeHtml(m)+'</label><button class="danger" data-bscdel="'+i+'">حذف</button></div>';
+  }).join('')):'');
+  el.querySelectorAll('[data-bsid]').forEach(function(inp){
+    inp.onchange=function(){
+      var s=cfg.senders.find(function(x){return x.id===inp.dataset.bsid;});
+      if(s){ s.enabled=!!inp.checked; persist(); }
+    };
+  });
+  el.querySelectorAll('[data-bscdel]').forEach(function(btn){
+    btn.onclick=function(){ cfg.customMatches.splice(+btn.dataset.bscdel,1); persist(); renderBankSmsSenders(); };
+  });
+}
+function renderBankSmsSheet(){
+  var cfg=bankSmsCfg();
+  var en=document.getElementById('bankSmsEnabled'); if(en) en.checked=!!cfg.enabled;
+  var unit=document.getElementById('bankSmsUnit'); if(unit) unit.value=cfg.unit||'auto';
+  renderBankSmsSenders();
+  var b=activeBook(), el=document.getElementById('bankSmsList');
+  var rows=(b.bankSmsInbox||[]).filter(function(x){return !x.status||x.status==='pending';});
+  if(!rows.length){ el.innerHTML='<div class="empty">پیشنهاد در انتظاری نیست.<br><small>با «اسکن پیام‌های جدید» یا رسیدن SMS بانکی پر می‌شود.</small></div>'; return; }
+  el.innerHTML='<div class="advanced-list">'+rows.map(function(x){
+    var p=x.parsed||{};
+    return '<div class="advanced-card" id="bankSmsItem'+x.id+'" data-banksms="'+x.id+'"><div class="advanced-card-head"><div class="advanced-card-title">'+(p.type==='income'?'⬇️ واریز':'⬆️ برداشت')+' · '+(p.amount?money(p.amount):'—')+'</div><span class="review-severity urgent">پیشنهاد</span></div>'+
+      '<div class="advanced-card-sub">'+escapeHtml(p.desc||'')+' · '+escapeHtml(x.sender||'')+' · '+new Date(x.dateMs||x.createdAt).toLocaleString('fa-IR')+(p.ruleApplied?' · قانون: '+escapeHtml(p.ruleApplied):'')+'</div>'+
+      '<div class="bank-raw">'+escapeHtml(x.body||'')+'</div>'+
+      '<div class="advanced-actions"><button data-bsreg="'+x.id+'">ثبت</button><button class="alt" data-bsedit="'+x.id+'">ویرایش و ثبت</button><button class="danger" data-bsrej="'+x.id+'">رد</button></div></div>';
+  }).join('')+'</div>';
+  el.querySelectorAll('[data-bsreg]').forEach(function(btn){ btn.onclick=function(){ confirmBankSms(+btn.dataset.bsreg,false); }; });
+  el.querySelectorAll('[data-bsedit]').forEach(function(btn){ btn.onclick=function(){ confirmBankSms(+btn.dataset.bsedit,true); }; });
+  el.querySelectorAll('[data-bsrej]').forEach(function(btn){ btn.onclick=function(){ rejectBankSms(+btn.dataset.bsrej); }; });
+}
+function highlightBankSmsItem(id){
+  var el=document.getElementById('bankSmsItem'+id);
+  if(el){ el.classList.add('hl'); try{el.scrollIntoView({block:'center',behavior:'smooth'});}catch(e){} setTimeout(function(){el.classList.remove('hl');},1500); }
+}
+function rejectBankSms(id){
+  var b=activeBook(), item=(b.bankSmsInbox||[]).find(function(x){return x.id===id;});
+  if(!item)return;
+  item.status='rejected';
+  if(typeof addAudit==='function') addAudit('رد پیامک بانک', (item.parsed&&item.parsed.desc)||item.sender||'');
+  if(typeof invalidateReviewCache==='function') invalidateReviewCache();
+  persist(); renderBankSmsSheet(); updateMenuBadges(); toast('پیشنهاد رد شد');
+}
+function learnBankSmsRule(item, cat, accountId, type){
+  if(!item||!item.parsed||!item.parsed.merchant) return;
+  var b=activeBook(); ensureAdvancedBook(b);
+  var contains=String(item.parsed.merchant).trim();
+  if(contains.length<2) return;
+  b.bankSmsRules=b.bankSmsRules.filter(function(r){return r.contains!==contains;});
+  b.bankSmsRules.unshift({id:Date.now(),contains:contains,cat:cat,accountId:accountId,type:type});
+  if(b.bankSmsRules.length>80) b.bankSmsRules.length=80;
+}
+function confirmBankSms(id, editFirst){
+  var b=activeBook(), item=(b.bankSmsInbox||[]).find(function(x){return x.id===id;});
+  if(!item||!item.parsed){ toast('پارس پیامک ناقص است'); return; }
+  var p=item.parsed;
+  var dt=item.dateMs?new Date(item.dateMs):new Date();
+  var j=g2j(dt.getFullYear(),dt.getMonth()+1,dt.getDate());
+  if(editFirst){
+    rememberCurrentSheetForReturn('bankSmsSheet');
+    window.__keepBankSmsPending=true; openAdd(); window.__keepBankSmsPending=false;
+    setTimeout(function(){
+      setType(p.type==='income'?'income':'expense');
+      var cat=p.cat||(p.type==='income'?'سایر':'سایر');
+      curCat=cat; fillCatGrid();
+      document.getElementById('amountIn').value=fa(group(p.amount));
+      document.getElementById('descIn').value=p.desc||'';
+      fillDateSelects(j);
+      var acc=p.accountId||'bank';
+      renderAccountOptions(acc);
+      window.__pendingBankSmsId=id;
+    },40);
+    return;
+  }
+  // quick register
+  if(!canEditMonth(j)) return;
+  var cat=p.cat||(activeBook().cats[p.type==='income'?'income':'expense']||[]).map(function(c){return c[0];}).filter(function(n){return n!=='برگشت وجه'&&n!=='واریز غیر درآمدی';})[0]||'سایر';
+  var accountId=p.accountId||((b.accounts||[]).some(function(a){return a.id==='bank';})?'bank':'fund');
+  var acc=accountById(accountId)||{id:'fund',kind:'fund'};
+  var source=(p.type==='expense'&&acc.kind==='personal')?'personal':'fund';
+  var finalType=effectiveTxType(p.type,cat);
+  var rec={id:Date.now(),docNo:nextDocNo(b,j.jy,j.jm),type:finalType,cat:cat,desc:p.desc||'تراکنش بانکی',amount:p.amount,jy:j.jy,jm:j.jm,jd:j.jd,source:source,accountId:acc.id,linkedTxId:null,settled:false,hasPhoto:false,photoCount:0,receiptNote:'از پیامک بانک · '+ (item.sender||''),bankSmsFp:item.fp,createdAt:Date.now(),updatedAt:Date.now()};
+  b.tx.push(rec);
+  learnBankSmsRule(item, cat, acc.id, p.type);
+  item.status='accepted'; item.txId=rec.id;
+  if(typeof addAudit==='function') addAudit('ثبت از پیامک بانک', rec.desc+' · '+money(rec.amount), rec.id);
+  if(typeof invalidateReviewCache==='function') invalidateReviewCache();
+  persist(); view={jy:rec.jy,jm:rec.jm}; renderBankSmsSheet(); render(); updateMenuBadges();
+  toast('تراکنش از پیامک ثبت شد ✓');
+}
+// when saving tx from edit flow started by bank sms
+var baseSaveTxBank=typeof saveTx==='function'?saveTx:null;
+// hook via finish: clear pending on save already handled in advanced saveTx override - patch below
+
+async function ensureBankSmsWatcher(){
+  var plugin=bankSmsPlugin(); if(!plugin||!bankSmsCfg().enabled) return;
+  try{
+    var perm=await plugin.checkPermissions();
+    if(!(perm&&String(perm.sms).toLowerCase()==='granted')) return;
+    await plugin.startWatching();
+    if(!window.__bankSmsListenBound){
+      window.__bankSmsListenBound=true;
+      plugin.addListener('smsReceived', function(msg){
+        var matches=activeBankSmsMatches().map(function(s){return String(s).toLowerCase().replace(/\s+/g,'');});
+        var addr=String(msg.address||'').toLowerCase().replace(/\s+/g,'');
+        var ok=!matches.length||matches.some(function(s){return addr===s||addr.indexOf(s)>=0||s.indexOf(addr)>=0;});
+        if(!ok) return;
+        if(upsertBankSmsSuggestion(msg)){
+          if(typeof invalidateReviewCache==='function') invalidateReviewCache();
+          persist(); updateMenuBadges(); renderTodayDashboard();
+          toast('پیامک بانک جدید در صف تأیید');
+          if(document.getElementById('bankSmsSheet')&&document.getElementById('bankSmsSheet').classList.contains('show')) renderBankSmsSheet();
+        }
+      });
+    }
+  }catch(e){}
+}
+
+document.getElementById('bankSmsBtn').onclick=openBankSms;
+document.getElementById('bankSmsEnabled').onchange=function(){
+  bankSmsCfg().enabled=!!this.checked; persist();
+  if(this.checked){ scanBankSms({toast:true,force:true}); ensureBankSmsWatcher(); }
+  else{
+    var plugin=bankSmsPlugin(); if(plugin&&plugin.stopWatching) plugin.stopWatching();
+    toast('خواندن پیامک بانک خاموش شد');
+  }
+};
+document.getElementById('bankSmsUnit').onchange=function(){ bankSmsCfg().unit=this.value||'auto'; persist(); };
+document.getElementById('bankSmsAskPerm').onclick=async function(){
+  var plugin=bankSmsPlugin();
+  if(!plugin){ toast('فقط در اپ اندروید'); return; }
+  try{
+    var r=await plugin.requestPermissions();
+    updateBankSmsPermStatus(r);
+    if(r&&String(r.sms).toLowerCase()==='granted'){ toast('دسترسی SMS داده شد ✓'); ensureBankSmsWatcher(); }
+    else toast('دسترسی SMS داده نشد');
+  }catch(e){ toast('درخواست دسترسی ناموفق'); }
+};
+document.getElementById('bankSmsScanNow').onclick=function(){ scanBankSms({toast:true,force:true}); };
+document.getElementById('bankSmsRefreshList').onclick=function(){ renderBankSmsSheet(); };
+document.getElementById('bankSmsAddSender').onclick=function(){
+  var v=(document.getElementById('bankSmsCustomSender').value||'').trim();
+  if(!v){ toast('فرستنده را وارد کن'); return; }
+  var cfg=bankSmsCfg();
+  if(cfg.customMatches.indexOf(v)>=0){ toast('قبلاً اضافه شده'); return; }
+  cfg.customMatches.push(v); document.getElementById('bankSmsCustomSender').value=''; persist(); renderBankSmsSenders(); toast('فرستنده اضافه شد');
+};
+
+// After editing from bank sms suggestion, mark accepted
+(function hookBankSmsSave(){
+  var prev=saveTx;
+  saveTx=async function(){
+    var pending=window.__pendingBankSmsId;
+    await prev.apply(this, arguments);
+    var sheet=document.getElementById('sheet');
+    var closed=!sheet||!sheet.classList.contains('show');
+    if(pending&&closed){
+      var b=activeBook(), item=(b.bankSmsInbox||[]).find(function(x){return x.id===pending;});
+      if(item&&item.status!=='accepted'){
+        item.status='accepted';
+        var last=null;(b.tx||[]).forEach(function(t){ if(!last||(t.updatedAt||t.id)>(last.updatedAt||last.id)) last=t; });
+        if(last){ item.txId=last.id; learnBankSmsRule(item, last.cat, last.accountId, last.type==='income'?'income':'expense'); }
+        window.__pendingBankSmsId=null;
+        if(typeof invalidateReviewCache==='function') invalidateReviewCache();
+        persist(); updateMenuBadges();
+      }
+    }
+  };
+})();
+
+// auto scan on resume
+(function initBankSmsLifecycle(){
+  try{
+    if(!isCapacitorApp()) return;
+    var App=Capacitor.Plugins&&Capacitor.Plugins.App;
+    if(App&&App.addListener){
+      App.addListener('appStateChange', function(st){ if(st&&st.isActive&&bankSmsCfg().enabled) scanBankSms({toast:false}); });
+    }
+    setTimeout(function(){ if(bankSmsCfg().enabled){ scanBankSms({toast:false}); ensureBankSmsWatcher(); } }, 1200);
+  }catch(e){}
+})();
+
 
 loadCloudCfg();
 updateBackupRemind();
