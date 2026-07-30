@@ -1429,10 +1429,11 @@
     <button type="button" class="save-btn" id="bankSmsScanNow" style="margin:0;background:var(--gold);color:var(--brand-deep)">اسکن پیام‌های جدید</button>
     <button type="button" class="save-btn" id="bankSmsDiscover" style="margin:0;background:var(--bg);color:var(--brand-deep);border:1px solid var(--line)">کشف فرستنده‌ها</button>
   </div>
-  <div class="section-caption">فرستنده‌های بانکی</div>
+  <div class="section-caption">فرستنده‌های کشف‌شده از اسکن</div>
+  <p class="encrypt-note" style="margin-top:0">فقط شماره‌هایی که اسکن/کشف پیدا کند اینجا می‌آید. پیامک رمز/OTP وارد صف نمی‌شود. بعد از ثبت یا رد، همان رسید در اسکن بعدی برنمی‌گردد.</p>
   <div id="bankSmsSenders"></div>
   <div class="advanced-form-row" style="margin-top:8px">
-    <input id="bankSmsCustomSender" placeholder="فرستنده سفارشی؛ مثلاً 30001234" style="direction:ltr;text-align:left">
+    <input id="bankSmsCustomSender" placeholder="افزودن دستی فرستنده؛ مثلاً 30001234" style="direction:ltr;text-align:left">
     <button type="button" class="save-btn" id="bankSmsAddSender" style="margin:0;flex:0 0 auto;padding:9px 12px">افزودن</button>
   </div>
   <div class="section-caption">واحد مبلغ پیامک</div>
@@ -3949,43 +3950,49 @@ var currentInboxReviewId=null;
 var currentTemplateApplyId=null;
 var accountSelectionByType={expense:null,income:null};
 
-function defaultBankSmsSenders(){
-  return [
-    {id:'mellat',label:'بانک ملت',match:['mellat','bmellat','بانک ملت','ملت'],enabled:true},
-    {id:'melli',label:'بانک ملی',match:['bmi','bmimelli','بانک ملی','ملی'],enabled:true},
-    {id:'saderat',label:'بانک صادرات',match:['bsi','saderat','صادرات'],enabled:true},
-    {id:'tejarat',label:'بانک تجارت',match:['tejarat','تجارت'],enabled:true},
-    {id:'sepah',label:'بانک سپه',match:['sepah','سپه'],enabled:true},
-    {id:'saman',label:'بانک سامان',match:['saman','سامان'],enabled:true},
-    {id:'pasargad',label:'بانک پاسارگاد',match:['pasargad','bpi','پاسارگاد'],enabled:true},
-    {id:'ayandeh',label:'بانک آینده',match:['ayandeh','آینده'],enabled:true},
-    {id:'shahr',label:'بانک شهر',match:['shahr','بانک شهر'],enabled:true},
-    {id:'maskan',label:'بانک مسکن',match:['maskan','مسکن'],enabled:true},
-    {id:'keshavarzi',label:'بانک کشاورزی',match:['bki','keshavarzi','کشاورزی'],enabled:true},
-    {id:'refah',label:'بانک رفاه',match:['refah','رفاه'],enabled:true},
-    {id:'resalat',label:'رسالت',match:['resalat','رسالت'],enabled:true},
-    {id:'bluebank',label:'بلو بانک',match:['bluebank','blu','بلو'],enabled:false},
-    {id:'custom',label:'سفارشی',match:[],enabled:true,custom:true}
-  ];
+function normalizeBankSmsSenderEntry(raw, fallbackId){
+  if(!raw) return null;
+  if(typeof raw==='string'){
+    var s=String(raw).trim(); if(!s) return null;
+    return {id:fallbackId||('d_'+s), label:s, address:s, match:s, enabled:true};
+  }
+  var address=String(raw.address||raw.match||raw.label||'').trim();
+  if(!address && Array.isArray(raw.match) && raw.match[0]) address=String(raw.match[0]).trim();
+  if(!address) return null;
+  var match=String((Array.isArray(raw.match)?raw.match[0]:raw.match)||address).trim()||address;
+  return {
+    id:String(raw.id||fallbackId||('d_'+address)),
+    label:String(raw.label||address),
+    address:address,
+    match:match,
+    enabled:raw.enabled!==false
+  };
 }
 function normalizeBankSmsSettings(cfg){
   cfg=cfg&&typeof cfg==='object'?cfg:{};
-  var base=defaultBankSmsSenders();
-  var byId={};(cfg.senders||[]).forEach(function(s){if(s&&s.id)byId[s.id]=s;});
-  var senders=base.map(function(d){
-    var o=byId[d.id];
-    return {id:d.id,label:d.label,match:(o&&o.match)||d.match,enabled:o?!!o.enabled:!!d.enabled,custom:!!d.custom};
-  });
-  (cfg.senders||[]).forEach(function(s){
-    if(s&&s.id&&s.custom&&!senders.some(function(x){return x.id===s.id;})){
-      senders.push({id:s.id,label:s.label||s.id,match:s.match||[s.id],enabled:s.enabled!==false,custom:true});
+  var seen={}, discovered=[];
+  function pushSender(raw, fid){
+    var e=normalizeBankSmsSenderEntry(raw, fid);
+    if(!e) return;
+    var key=String(e.match||e.address).toLowerCase().replace(/\s+/g,'');
+    if(!key||seen[key]) return;
+    seen[key]=true;
+    discovered.push(e);
+  }
+  // فقط فرستنده‌های کشف‌شده / دستی — لیست ثابت بانک‌ها حذف شد
+  (cfg.discoveredSenders||[]).forEach(function(s,i){ pushSender(s, 'disc_'+i); });
+  (cfg.customMatches||[]).forEach(function(m,i){ pushSender(m, 'custom_'+i); });
+  (cfg.senders||[]).forEach(function(s,i){
+    // مهاجرت: فقط موارد سفارشیِ قبلی یا مواردی که واقعاً آدرس دارند
+    if(!s) return;
+    if(s.custom || s.address || (Array.isArray(s.match)&&s.match.length===1&&/^\+?\d[\d\s-]{4,}$/.test(String(s.match[0])))){
+      pushSender(s, 'legacy_'+i);
     }
   });
   return {
     enabled:!!cfg.enabled,
     unit:cfg.unit||'auto',
-    senders:senders,
-    customMatches:Array.isArray(cfg.customMatches)?cfg.customMatches.filter(Boolean):[],
+    discoveredSenders:discovered,
     lastScanAt:+cfg.lastScanAt||0
   };
 }
@@ -5143,12 +5150,20 @@ function bankSmsPlugin(){
 }
 function activeBankSmsMatches(){
   var cfg=bankSmsCfg(), out=[];
-  (cfg.senders||[]).forEach(function(s){
-    if(!s.enabled)return;
-    (s.match||[]).forEach(function(m){ if(m) out.push(String(m)); });
+  (cfg.discoveredSenders||[]).forEach(function(s){
+    if(!s||s.enabled===false) return;
+    var m=s.match||s.address; if(m) out.push(String(m));
   });
-  (cfg.customMatches||[]).forEach(function(m){ if(m) out.push(String(m)); });
   return out;
+}
+function rememberBankSmsSender(address){
+  var a=String(address||'').trim(); if(!a) return false;
+  var cfg=bankSmsCfg();
+  if(!Array.isArray(cfg.discoveredSenders)) cfg.discoveredSenders=[];
+  var key=a.toLowerCase().replace(/\s+/g,'');
+  if(cfg.discoveredSenders.some(function(s){ return String(s.match||s.address||'').toLowerCase().replace(/\s+/g,'')===key; })) return false;
+  cfg.discoveredSenders.push({id:'d_'+Date.now()+Math.floor(Math.random()*999), label:a, address:a, match:a, enabled:true});
+  return true;
 }
 function faDigitsToEn(s){return String(s||'').replace(/[۰-۹]/g,function(d){return '۰۱۲۳۴۵۶۷۸۹'.indexOf(d);}).replace(/[٠-٩]/g,function(d){return '٠١٢٣٤٥٦٧٨٩'.indexOf(d);});}
 function normalizeBankSmsText(s){
@@ -5162,10 +5177,18 @@ function normalizeBankSmsText(s){
     .replace(/[٬]/g,',')
     .replace(/[：]/g,':');
 }
+function isOtpSms(text){
+  var t=normalizeBankSmsText(text);
+  if(!t) return false;
+  // پیامک رمز / OTP / کد ورود — هرگز وارد صف پیشنهاد بانکی نشود
+  if(/(کد\s*تأیید|کد\s*تایید|کد\s*ورود|رمز\s*یکبار|رمز\s*یک\s*بار|رمز\s*پویا|رمز\s*موقت|dynamic\s*password|one[\s-]*time(?:\s*password)?|\botp\b|verification\s*code|auth(?:entication)?\s*code)/i.test(t)) return true;
+  if(/(رمز|کد)\s*[:：]?\s*\d{4,8}\b/.test(t) && !/(واریز|برداشت|مانده|موجودی|خرید|پرداخت|مبلغ)/.test(t)) return true;
+  if(/رمز\s*عبور|password|pin\s*code|ورود به (?:اپ|حساب|همراه)/i.test(t) && !/(واریز|برداشت|مانده|خرید)/.test(t)) return true;
+  return false;
+}
 function parseBankSmsBody(body, unitMode){
   body=normalizeBankSmsText(body);
-  var skip=/رمز|otp|one[- ]?time|ورود|login|code\s*:|کد\s*[:：]|فعالسازی|فعال‌سازی|اعتبارسنجی/i.test(body);
-  if(skip && !/(برداشت|واریز|خرید|پرداخت|مانده|موجودی)/.test(body)) return null;
+  if(isOtpSms(body)) return null;
   if(/ناموفق|مورد تأیید قرار نگرفت|insufficient|عدم کفایت|لغو شد/.test(body)) return null;
 
   var debit=/برداشت|خرید|پرداخت|کسر|انتقال وجه از|برداشت از|پرداخت قبض|\bpos\b|خرید از/i.test(body);
@@ -5266,38 +5289,63 @@ function applyBankSmsRules(item){
 
 function looksLikeBankSms(body, address){
   body=normalizeBankSmsText(body);
+  if(isOtpSms(body)) return false;
   var a=String(address||'');
-  if(/رمز\s*یکبار|otp|one[- ]?time|کد\s*[:：]\s*\d{4,}/i.test(body) && !/(برداشت|واریز|خرید|مبلغ)/.test(body)) return false;
   if(/(برداشت|واریز|خرید|پرداخت|موجودی|مانده|ریال|تومان|حساب|کارت|بانک)/.test(body) && /([0-9]{3,}[,]?[0-9]{3,}|مبلغ)/.test(body)) return true;
-  if(/bank|بانک|mellat|saman|tejarat|saderat|pasargad|sepah|سپه/i.test(a+' '+body)) return true;
+  if(/bank|بانک/i.test(a+' '+body) && /([0-9]{4,}|مبلغ|ریال|تومان)/.test(body)) return true;
   return false;
 }
-var BANK_SMS_PARSER_VER=2;
+function markBankSmsSeen(itemOrFp, status, smsId){
+  var b=activeBook(); ensureAdvancedBook(b);
+  var fp=typeof itemOrFp==='object'?(itemOrFp.fp||''):String(itemOrFp||'');
+  var sid=typeof itemOrFp==='object'?(itemOrFp.smsId||''):String(smsId||'');
+  if(fp) b.bankSmsSeen[fp]=status;
+  if(sid) b.bankSmsSeen[sid]=status;
+}
+function bankSmsIsFinalSeen(seen){
+  return seen==='accepted'||seen==='rejected'||seen==='otp'||seen===1;
+}
+var BANK_SMS_PARSER_VER=3;
 function upsertBankSmsSuggestion(msg, opts){
   opts=opts||{};
   var b=activeBook(); ensureAdvancedBook(b);
   var fp=bankSmsFingerprint(msg);
-  var seen=b.bankSmsSeen[fp]||b.bankSmsSeen[String(msg.id)];
-  var alreadyInbox=(b.bankSmsInbox||[]).some(function(x){return x.fp===fp||x.smsId===String(msg.id);});
-  if(alreadyInbox) return false;
-  // اگر قبلاً با پارسر قدیمی fail شده، روی اسکن اجباری دوباره تلاش کن
-  if(seen && !(opts.reparse && seen!==BANK_SMS_PARSER_VER && seen!=='accepted')) return false;
+  var smsId=String(msg.id||'');
+  var seen=b.bankSmsSeen[fp]||(smsId?b.bankSmsSeen[smsId]:null);
+  // تعیین‌تکلیف‌شده‌ها (ثبت/رد/OTP/تراکنش تکراری) هرگز دوباره نیایند
+  if(bankSmsIsFinalSeen(seen)) return false;
+  var existing=(b.bankSmsInbox||[]).find(function(x){return x.fp===fp||(smsId&&x.smsId===smsId);});
+  if(existing){
+    if(existing.status==='accepted'||existing.status==='rejected'){
+      markBankSmsSeen(existing, existing.status);
+      return false;
+    }
+    return false; // هنوز pending در لیست است
+  }
+  if(isOtpSms(msg.body)){
+    markBankSmsSeen(fp,'otp',smsId);
+    return false;
+  }
+  // failهای قدیمی فقط با اسکن اجباری دوباره پارس شوند
+  var isFail=seen && String(seen).indexOf('fail')===0;
+  if(seen && !isFail) return false;
+  if(isFail && !opts.reparse) return false;
   var parsed=parseBankSmsBody(msg.body, bankSmsCfg().unit);
-  if(!parsed){ b.bankSmsSeen[fp]='fail-v1'; return false; }
-  // duplicate vs existing txs (same day-ish amount+desc)
+  if(!parsed){
+    markBankSmsSeen(fp,'fail-v'+BANK_SMS_PARSER_VER,smsId);
+    return false;
+  }
   var approxDate=msg.date?new Date(msg.date):new Date();
   var j=g2j(approxDate.getFullYear(),approxDate.getMonth()+1,approxDate.getDate());
   var dupTx=(b.tx||[]).some(function(t){
     return t.amount===parsed.amount && t.type===parsed.type && Math.abs(jcmp(t)-jcmp(j))<=1 && (t.bankSmsFp===fp || (t.desc&&parsed.desc&&t.desc.indexOf(parsed.merchant||'__none__')>=0));
   });
-  if(dupTx){ b.bankSmsSeen[fp]=1; return false; }
-  var already=(b.bankSmsInbox||[]).some(function(x){return x.fp===fp||x.smsId===String(msg.id);});
-  if(already){ b.bankSmsSeen[fp]=1; return false; }
-  var item={id:Date.now()+Math.floor(Math.random()*9999),smsId:String(msg.id||''),fp:fp,sender:msg.address||'',body:msg.body||'',dateMs:+msg.date||Date.now(),parsed:parsed,status:'pending',createdAt:Date.now()};
+  if(dupTx){ markBankSmsSeen(fp,'accepted',smsId); return false; }
+  var item={id:Date.now()+Math.floor(Math.random()*9999),smsId:smsId,fp:fp,sender:msg.address||'',body:msg.body||'',dateMs:+msg.date||Date.now(),parsed:parsed,status:'pending',createdAt:Date.now()};
   applyBankSmsRules(item);
   b.bankSmsInbox.unshift(item);
-  b.bankSmsSeen[fp]=BANK_SMS_PARSER_VER;
-  if(item.smsId) b.bankSmsSeen[item.smsId]=BANK_SMS_PARSER_VER;
+  markBankSmsSeen(item, BANK_SMS_PARSER_VER);
+  rememberBankSmsSender(msg.address);
   if(b.bankSmsInbox.length>200) b.bankSmsInbox.length=200;
   return true;
 }
@@ -5308,7 +5356,6 @@ async function scanBankSms(opts){
   var plugin=bankSmsPlugin();
   if(!plugin){ if(opts.toast) toast('پلاگین پیامک پیدا نشد؛ APK را دوباره نصب کن'); return {ok:false,reason:'no-plugin'}; }
   var matches=activeBankSmsMatches();
-  if(!matches.length){ if(opts.toast) toast('حداقل یک فرستنده بانک را فعال کن'); return {ok:false,reason:'no-senders'}; }
   try{
     var perm=await plugin.checkPermissions();
     var st=perm&&perm.sms!=null?String(perm.sms).toLowerCase():'';
@@ -5324,9 +5371,12 @@ async function scanBankSms(opts){
     var since=cfg.lastScanAt||0;
     // first scan / manual scan: look back 30 days so older bank SMS are found
     if(!since || opts.force) since=Date.now()-30*24*60*60*1000;
-    var res=await plugin.readInbox({senders:matches, sinceMs:Math.max(0,since-60000), limit:200});
-    var msgs=(res&&res.messages)||[];
-    // if filtered by sender yields nothing, retry without sender filter then filter in JS (OEM address quirks)
+    var msgs=[];
+    if(matches.length){
+      var res=await plugin.readInbox({senders:matches, sinceMs:Math.max(0,since-60000), limit:200});
+      msgs=(res&&res.messages)||[];
+    }
+    // بدون فرستندهٔ کشف‌شده، یا اگر فیلتر آدرس چیزی نداد: کل اینباکس و تشخیص از متن
     if(!msgs.length){
       try{
         var all=await plugin.readInbox({senders:[], sinceMs:Math.max(0,since-60000), limit:200});
@@ -5334,8 +5384,9 @@ async function scanBankSms(opts){
         var norm=function(s){return String(s||'').toLowerCase().replace(/\s+/g,'');};
         var keys=matches.map(norm);
         msgs=allMsgs.filter(function(m){
+          if(isOtpSms(m.body)) return false;
           var a=norm(m.address);
-          var senderOk=keys.some(function(k){return k&&(a===k||a.indexOf(k)>=0||k.indexOf(a)>=0);});
+          var senderOk=keys.length && keys.some(function(k){return k&&(a===k||a.indexOf(k)>=0||k.indexOf(a)>=0);});
           return senderOk || looksLikeBankSms(m.body, m.address);
         });
         if(!msgs.length){
@@ -5343,11 +5394,15 @@ async function scanBankSms(opts){
           var stEl=document.getElementById('bankSmsPermStatus');
           if(stEl){
             var sample=allMsgs.slice(0,6).map(function(m){return (m.address||'؟');}).join('، ');
-            stEl.textContent=allMsgs.length?('پیامکی خوانده شد ولی با بانک‌های انتخابی جور نشد. نمونه فرستنده: '+sample):'هیچ پیامکی در ۳۰ روز اخیر خوانده نشد';
+            stEl.textContent=allMsgs.length
+              ?('پیامک خوانده شد ولی رسید بانکی قابل تبدیل نبود. نمونه فرستنده: '+sample)
+              :'هیچ پیامکی در ۳۰ روز اخیر خوانده نشد';
             stEl.className='bank-status warn';
           }
         }
       }catch(_e2){}
+    }else{
+      msgs=msgs.filter(function(m){ return !isOtpSms(m.body); });
     }
     var added=0, skipped=0;
     msgs.forEach(function(m){ if(upsertBankSmsSuggestion(m,{reparse:!!opts.force})) added++; else skipped++; });
@@ -5357,8 +5412,8 @@ async function scanBankSms(opts){
     if(document.getElementById('bankSmsSheet')&&document.getElementById('bankSmsSheet').classList.contains('show')) renderBankSmsSheet();
     if(opts.toast){
       if(added) toast(fa(added)+' پیشنهاد بانکی جدید');
-      else if(msgs.length) toast('پیامک بانکی پیدا شد ولی قابل تبدیل نبود ('+fa(msgs.length)+')');
-      else toast('پیامکی از فرستنده‌های انتخابی پیدا نشد');
+      else if(msgs.length) toast('پیامک بانکی پیدا شد ولی قابل تبدیل نبود یا قبلاً تعیین‌تکلیف شده ('+fa(msgs.length)+')');
+      else toast(matches.length?'پیامکی از فرستنده‌های کشف‌شده پیدا نشد':'رسید بانکی جدیدی پیدا نشد');
     }
     return {ok:true,added:added,scanned:msgs.length,skipped:skipped};
   }catch(e){
@@ -5389,29 +5444,43 @@ function openBankSms(){
 }
 function renderBankSmsSenders(){
   var cfg=bankSmsCfg(), el=document.getElementById('bankSmsSenders'); if(!el) return;
-  el.innerHTML=(cfg.senders||[]).filter(function(s){return !s.custom||(s.match||[]).length;}).map(function(s){
-    return '<div class="bank-sender"><input type="checkbox" data-bsid="'+escapeHtml(s.id)+'" '+(s.enabled?'checked':'')+'><label>'+escapeHtml(s.label)+'<div class="advanced-card-sub" style="margin:0">'+escapeHtml((s.match||[]).slice(0,3).join(' · '))+'</div></label></div>';
-  }).join('') + ((cfg.customMatches||[]).length?('<div class="section-caption">سفارشی‌ها</div>'+cfg.customMatches.map(function(m,i){
-    return '<div class="bank-sender"><label style="direction:ltr;text-align:left">'+escapeHtml(m)+'</label><button class="danger" data-bscdel="'+i+'">حذف</button></div>';
-  }).join('')):'');
-  el.querySelectorAll('[data-bsid]').forEach(function(inp){
+  var list=cfg.discoveredSenders||[];
+  if(!list.length){
+    el.innerHTML='<div class="empty" style="padding:10px 0">هنوز فرستنده‌ای کشف نشده.<br><small>با «اسکن» یا «کشف فرستنده‌ها» از روی متن پیامک‌ها پر می‌شود.</small></div>';
+    return;
+  }
+  el.innerHTML=list.map(function(s,i){
+    return '<div class="bank-sender"><input type="checkbox" data-bsidx="'+i+'" '+(s.enabled!==false?'checked':'')+'><label style="direction:ltr;text-align:left">'+escapeHtml(s.label||s.address||s.match)+'</label><button class="danger" data-bsdel="'+i+'">حذف</button></div>';
+  }).join('');
+  el.querySelectorAll('[data-bsidx]').forEach(function(inp){
     inp.onchange=function(){
-      var s=cfg.senders.find(function(x){return x.id===inp.dataset.bsid;});
+      var s=cfg.discoveredSenders[+inp.dataset.bsidx];
       if(s){ s.enabled=!!inp.checked; persist(); }
     };
   });
-  el.querySelectorAll('[data-bscdel]').forEach(function(btn){
-    btn.onclick=function(){ cfg.customMatches.splice(+btn.dataset.bscdel,1); persist(); renderBankSmsSenders(); };
+  el.querySelectorAll('[data-bsdel]').forEach(function(btn){
+    btn.onclick=function(){ cfg.discoveredSenders.splice(+btn.dataset.bsdel,1); persist(); renderBankSmsSenders(); };
   });
 }
 function renderBankSmsSheet(){
   var cfg=bankSmsCfg();
   var en=document.getElementById('bankSmsEnabled'); if(en) en.checked=!!cfg.enabled;
   var unit=document.getElementById('bankSmsUnit'); if(unit) unit.value=cfg.unit||'auto';
+  // پاکسازی پیشنهادهای OTP که قبلاً لیز خورده‌اند
+  var b=activeBook();
+  var dirty=false;
+  (b.bankSmsInbox||[]).forEach(function(x){
+    if((!x.status||x.status==='pending') && isOtpSms(x.body)){
+      x.status='rejected';
+      markBankSmsSeen(x,'otp');
+      dirty=true;
+    }
+  });
+  if(dirty){ persist(); updateMenuBadges(); }
   renderBankSmsSenders();
-  var b=activeBook(), el=document.getElementById('bankSmsList');
+  var el=document.getElementById('bankSmsList');
   var rows=(b.bankSmsInbox||[]).filter(function(x){return !x.status||x.status==='pending';});
-  if(!rows.length){ el.innerHTML='<div class="empty">پیشنهاد در انتظاری نیست.<br><small>با «اسکن پیام‌های جدید» یا رسیدن SMS بانکی پر می‌شود.</small></div>'; return; }
+  if(!rows.length){ el.innerHTML='<div class="empty">پیشنهاد در انتظاری نیست.<br><small>با «اسکن پیام‌های جدید» یا رسیدن SMS بانکی پر می‌شود. موارد ثبت/ردشده دوباره نمی‌آیند.</small></div>'; return; }
   el.innerHTML='<div class="advanced-list">'+rows.map(function(x){
     var p=x.parsed||{};
     return '<div class="advanced-card" id="bankSmsItem'+x.id+'" data-banksms="'+x.id+'"><div class="advanced-card-head"><div class="advanced-card-title">'+(p.type==='income'?'⬇️ واریز':'⬆️ برداشت')+' · '+(p.amount?money(p.amount):'—')+'</div><span class="review-severity urgent">پیشنهاد</span></div>'+
@@ -5431,9 +5500,10 @@ function rejectBankSms(id){
   var b=activeBook(), item=(b.bankSmsInbox||[]).find(function(x){return x.id===id;});
   if(!item)return;
   item.status='rejected';
+  markBankSmsSeen(item,'rejected');
   if(typeof addAudit==='function') addAudit('رد پیامک بانک', (item.parsed&&item.parsed.desc)||item.sender||'');
   if(typeof invalidateReviewCache==='function') invalidateReviewCache();
-  persist(); renderBankSmsSheet(); updateMenuBadges(); toast('پیشنهاد رد شد');
+  persist(); renderBankSmsSheet(); updateMenuBadges(); toast('پیشنهاد رد شد — دیگر نمی‌آید');
 }
 function learnBankSmsRule(item, cat, accountId, type){
   if(!item||!item.parsed||!item.parsed.merchant) return;
@@ -5477,6 +5547,7 @@ function confirmBankSms(id, editFirst){
   b.tx.push(rec);
   learnBankSmsRule(item, cat, acc.id, p.type);
   item.status='accepted'; item.txId=rec.id;
+  markBankSmsSeen(item,'accepted');
   if(typeof addAudit==='function') addAudit('ثبت از پیامک بانک', rec.desc+' · '+money(rec.amount), rec.id);
   if(typeof invalidateReviewCache==='function') invalidateReviewCache();
   persist(); view={jy:rec.jy,jm:rec.jm}; renderBankSmsSheet(); render(); updateMenuBadges();
@@ -5495,9 +5566,10 @@ async function ensureBankSmsWatcher(){
     if(!window.__bankSmsListenBound){
       window.__bankSmsListenBound=true;
       plugin.addListener('smsReceived', function(msg){
+        if(isOtpSms(msg.body)) return;
         var matches=activeBankSmsMatches().map(function(s){return String(s).toLowerCase().replace(/\s+/g,'');});
         var addr=String(msg.address||'').toLowerCase().replace(/\s+/g,'');
-        var ok=!matches.length||matches.some(function(s){return addr===s||addr.indexOf(s)>=0||s.indexOf(addr)>=0;});
+        var ok=!matches.length || matches.some(function(s){return addr===s||addr.indexOf(s)>=0||s.indexOf(addr)>=0;}) || looksLikeBankSms(msg.body, msg.address);
         if(!ok) return;
         if(upsertBankSmsSuggestion(msg)){
           if(typeof invalidateReviewCache==='function') invalidateReviewCache();
@@ -5535,9 +5607,8 @@ safeOn('bankSmsRefreshList','onclick',function(){ renderBankSmsSheet(); });
 safeOn('bankSmsAddSender','onclick',function(){
   var v=(document.getElementById('bankSmsCustomSender').value||'').trim();
   if(!v){ toast('فرستنده را وارد کن'); return; }
-  var cfg=bankSmsCfg();
-  if(cfg.customMatches.indexOf(v)>=0){ toast('قبلاً اضافه شده'); return; }
-  cfg.customMatches.push(v); document.getElementById('bankSmsCustomSender').value=''; persist(); renderBankSmsSenders(); toast('فرستنده اضافه شد');
+  if(!rememberBankSmsSender(v)){ toast('قبلاً اضافه شده'); return; }
+  document.getElementById('bankSmsCustomSender').value=''; persist(); renderBankSmsSenders(); toast('فرستنده اضافه شد');
 });
 
 // After editing from bank sms suggestion, mark accepted
@@ -5552,6 +5623,7 @@ safeOn('bankSmsAddSender','onclick',function(){
       var b=activeBook(), item=(b.bankSmsInbox||[]).find(function(x){return x.id===pending;});
       if(item&&item.status!=='accepted'){
         item.status='accepted';
+        markBankSmsSeen(item,'accepted');
         var last=null;(b.tx||[]).forEach(function(t){ if(!last||(t.updatedAt||t.id)>(last.updatedAt||last.id)) last=t; });
         if(last){ item.txId=last.id; learnBankSmsRule(item, last.cat, last.accountId, last.type==='income'?'income':'expense'); }
         window.__pendingBankSmsId=null;
@@ -5590,17 +5662,19 @@ async function discoverBankSenders(){
     var msgs=(res&&res.messages)||[];
     var counts={}, examples={};
     msgs.forEach(function(m){
+      if(isOtpSms(m.body)) return;
       if(!looksLikeBankSms(m.body,m.address)) return;
+      if(!parseBankSmsBody(m.body, bankSmsCfg().unit)) return;
       var a=String(m.address||'').trim(); if(!a) return;
       counts[a]=(counts[a]||0)+1; if(!examples[a]) examples[a]=String(m.body||'').slice(0,80);
     });
     var keys=Object.keys(counts).sort(function(a,b){return counts[b]-counts[a];});
     if(!keys.length){ toast('فرستنده بانکی در پیامک‌ها پیدا نشد'); return; }
     var pick=keys.slice(0,12).map(function(a){return a+' ('+counts[a]+')';}).join('\n');
-    if(!confirm('فرستنده‌های مشکوک به بانک:\n'+pick+'\n\nهمه به لیست سفارشی اضافه شوند؟'))return;
-    var cfg=bankSmsCfg();
-    keys.slice(0,12).forEach(function(a){ if(cfg.customMatches.indexOf(a)<0) cfg.customMatches.push(a); });
-    persist(); renderBankSmsSenders(); toast(fa(Math.min(12,keys.length))+' فرستنده اضافه شد');
+    if(!confirm('فرستنده‌های کشف‌شده از رسید بانکی:\n'+pick+'\n\nبه لیست فرستنده‌ها اضافه شوند؟'))return;
+    var n=0;
+    keys.slice(0,12).forEach(function(a){ if(rememberBankSmsSender(a)) n++; });
+    persist(); renderBankSmsSenders(); toast(n? (fa(n)+' فرستنده اضافه شد'):'همه قبلاً بودند');
   }catch(e){ toast('کشف ناموفق: '+(e&&e.message||e)); }
 }
 safeOn('bankSmsDiscover','onclick',function(){ discoverBankSenders(); });
