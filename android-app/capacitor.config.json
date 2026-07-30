@@ -1,0 +1,21 @@
+{
+  "appId": "ir.hesab.daftar",
+  "appName": "دفتر حساب",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#EAEEEC",
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 800,
+      "backgroundColor": "#EAEEEC",
+      "showSpinner": false
+    },
+    "StatusBar": {
+      "style": "DARK",
+      "backgroundColor": "#15604A"
+    }
+  }
+}
