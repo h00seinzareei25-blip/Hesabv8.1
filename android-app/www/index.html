@@ -266,6 +266,32 @@
   .rep-pill.paid{background:var(--income-soft);color:var(--income);}
   .rep-pill.open{background:var(--gold-soft);color:var(--brand-deep);}
   .rep-scroll{max-height:34vh;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:4px 10px;margin-bottom:6px;}
+  /* --- آمار حرفه‌ای --- */
+  .rep-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+  .rep-kpi{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:9px 10px;min-width:0;}
+  .rep-kpi .k{font-size:10px;color:var(--muted);font-weight:800;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .rep-kpi .v{font-size:12.5px;font-weight:900;direction:ltr;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .rep-kpi .v.in{color:var(--income);}.rep-kpi .v.out{color:var(--expense);}
+  .rep-kpi .s{font-size:9px;color:var(--muted);font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .rep-chart-card{background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:12px;}
+  .rep-chart-title{font-size:12px;font-weight:900;margin-bottom:9px;display:flex;justify-content:space-between;align-items:center;}
+  .rep-chart-title small{font-size:10px;color:var(--muted);font-weight:700;}
+  .rep-legend{display:flex;gap:14px;font-size:10.5px;color:var(--muted);font-weight:700;margin-top:7px;flex-wrap:wrap;}
+  .rep-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-inline-end:4px;vertical-align:middle;}
+  .donut-wrap{display:flex;align-items:center;gap:14px;}
+  .donut-legend{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;}
+  .donut-legend .row{display:flex;align-items:center;justify-content:space-between;font-size:11px;font-weight:700;gap:8px;}
+  .donut-legend .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+  .donut-legend .val{direction:ltr;white-space:nowrap;color:var(--muted);font-size:10px;flex-shrink:0;}
+  .top-exp-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 2px;border-bottom:1px dashed var(--line);font-size:12px;font-weight:700;}
+  .top-exp-row:last-child{border-bottom:none;}
+  .top-exp-row .meta{min-width:0;}
+  .top-exp-row .d{color:var(--muted);font-weight:600;font-size:10px;margin-top:2px;}
+  .top-exp-row .a{direction:ltr;white-space:nowrap;color:var(--expense);font-weight:900;}
+  .rep-acc-row{display:flex;justify-content:space-between;align-items:center;padding:7px 2px;border-bottom:1px dashed var(--line);font-size:12px;font-weight:700;}
+  .rep-acc-row:last-child{border-bottom:none;}
+  .rep-acc-row .b{direction:ltr;font-weight:900;}
+  body.dark .rep-kpi,body.dark .rep-chart-card{background:#16211d;border-color:#243830;}
   .rep-actions{display:flex;gap:10px;margin-top:14px;}
   .rep-actions button{flex:1;padding:13px;border-radius:13px;font-weight:800;font-size:14px;background:var(--brand);color:#fff;}
   .rep-actions button:active{opacity:.85;}
@@ -2983,14 +3009,189 @@ function setRepMode(m){
   document.getElementById('repCustom').classList.toggle('show',m==='custom');
   renderReport();
 }
+var REP_COLORS=['#C2453A','#E07B39','#D9A404','#1E8E5A','#2E6F95','#7D5BA6','#B85C8A','#8A8F98'];
+function moneyShort(n){
+  var abs=Math.abs(n),sign=n<0?'-':'';
+  function f1(x){var v=Math.round(x*10)/10;var s=(v>=10||v===Math.round(v))?String(Math.round(v)):v.toFixed(1);return fa(s.replace('.','٫'));}
+  if(abs>=1e9)return sign+f1(abs/1e9)+' میلیارد';
+  if(abs>=1e6)return sign+f1(abs/1e6)+' میلیون';
+  if(abs>=1e3)return sign+f1(abs/1e3)+' هزار';
+  return sign+fa(Math.round(abs));
+}
+function jAbs(j){
+  var days=0;
+  for(var y=1300;y<j.jy;y++)days+=jLeap(y)?366:365;
+  for(var m=1;m<j.jm;m++)days+=jMonthLen(j.jy,m);
+  return days+j.jd;
+}
+function repBuckets(d){
+  var from=d.range.from,to=d.range.to,today=todayJ();
+  if(d.rows.length){
+    var f0=d.rows[0].t,l0=d.rows[d.rows.length-1].t;
+    if(jcmp(from)<jcmp({jy:f0.jy,jm:f0.jm,jd:f0.jd})&&d.range.label==='همهٔ تاریخ‌ها')from={jy:f0.jy,jm:f0.jm,jd:1};
+    if(jcmp(to)>jcmp({jy:l0.jy,jm:l0.jm,jd:l0.jd})){
+      var cl=jcmp(today)<jcmp(to)?today:to;
+      to=jcmp({jy:l0.jy,jm:l0.jm,jd:l0.jd})>jcmp(cl)?{jy:l0.jy,jm:l0.jm,jd:l0.jd}:cl;
+    }
+  }
+  if(jcmp(from)>jcmp(to)){var tmp=from;from=to;to=tmp;}
+  var span=Math.max(1,jAbs(to)-jAbs(from)+1);
+  var mode=span<=45?'day':'month';
+  var buckets=[],map={};
+  if(mode==='day'){
+    var cur={jy:from.jy,jm:from.jm,jd:from.jd},g=0;
+    while(g++<370&&jcmp(cur)<=jcmp(to)){
+      map[cur.jy+'-'+cur.jm+'-'+cur.jd]=buckets.length;
+      buckets.push({label:fa(cur.jd),inc:0,exp:0});
+      cur={jy:cur.jy,jm:cur.jm,jd:cur.jd+1};
+      if(cur.jd>jMonthLen(cur.jy,cur.jm)){cur.jd=1;cur.jm++;if(cur.jm>12){cur.jm=1;cur.jy++;}}
+    }
+  }else{
+    var y=from.jy,m=from.jm,g2=0;
+    while(g2++<60&&(y<to.jy||(y===to.jy&&m<=to.jm))){
+      map[y+'-'+m]=buckets.length;
+      buckets.push({label:MONTHS[m-1].slice(0,3)+(y!==to.jy?' '+fa(String(y).slice(2)):''),inc:0,exp:0});
+      m++;if(m>12){m=1;y++;}
+    }
+  }
+  d.rows.forEach(function(x){var t=x.t;
+    var key=mode==='day'?(t.jy+'-'+t.jm+'-'+t.jd):(t.jy+'-'+t.jm);
+    var i=map[key];if(i==null)return;
+    if(t.type==='income')buckets[i].inc+=t.amount;
+    else if(t.type==='expense')buckets[i].exp+=t.amount;
+  });
+  return {buckets:buckets,mode:mode,span:span};
+}
+function svgTrend(bk){
+  var buckets=bk.buckets;if(!buckets.length)return '';
+  var W=340,H=150,padT=18,padB=20,padL=4,padR=4;
+  var chartH=H-padT-padB,chartW=W-padL-padR;
+  var max=1;buckets.forEach(function(b){max=Math.max(max,b.inc,b.exp);});
+  var n=buckets.length,slot=chartW/n;
+  var barW=Math.max(2,Math.min(9,slot*0.34));
+  var s='<div dir="ltr"><svg viewBox="0 0 '+W+' '+H+'" style="width:100%;height:auto;display:block;">';
+  s+='<line x1="'+padL+'" y1="'+(H-padB)+'" x2="'+(W-padR)+'" y2="'+(H-padB)+'" stroke="var(--line)" stroke-width="1"/>';
+  [0.5,1].forEach(function(f){
+    var y=padT+chartH*(1-f);
+    s+='<line x1="'+padL+'" y1="'+y+'" x2="'+(W-padR)+'" y2="'+y+'" stroke="var(--line)" stroke-width="0.5" stroke-dasharray="3 4"/>';
+    s+='<text x="'+(W-padR)+'" y="'+(y-3)+'" font-size="8" fill="var(--muted)" text-anchor="end">'+moneyShort(max*f)+'</text>';
+  });
+  var step=Math.max(1,Math.ceil(n/6));
+  buckets.forEach(function(b,i){
+    var cx=padL+slot*i+slot/2;
+    var hInc=b.inc/max*chartH,hExp=b.exp/max*chartH;
+    if(b.inc>0)s+='<rect x="'+(cx-barW-0.6)+'" y="'+(padT+chartH-hInc)+'" width="'+barW+'" height="'+Math.max(1.5,hInc)+'" rx="1.5" fill="var(--income)" opacity="0.85"/>';
+    if(b.exp>0)s+='<rect x="'+(cx+0.6)+'" y="'+(padT+chartH-hExp)+'" width="'+barW+'" height="'+Math.max(1.5,hExp)+'" rx="1.5" fill="var(--expense)" opacity="0.9"/>';
+    if(i%step===0)s+='<text x="'+cx+'" y="'+(H-6)+'" font-size="8.5" fill="var(--muted)" text-anchor="middle">'+b.label+'</text>';
+  });
+  s+='</svg></div>';
+  return s;
+}
+function svgDonut(items,total,centerLabel){
+  var R=42,CX=57,CY=57,SW=17,C=2*Math.PI*R;
+  var s='<svg viewBox="0 0 114 114" style="width:112px;height:112px;flex-shrink:0;" dir="ltr">';
+  s+='<circle cx="'+CX+'" cy="'+CY+'" r="'+R+'" fill="none" stroke="var(--line)" stroke-width="'+SW+'" opacity="0.35"/>';
+  var acc=0;
+  items.forEach(function(it,i){
+    if(!it.v)return;
+    var frac=it.v/total,len=frac*C;
+    s+='<circle cx="'+CX+'" cy="'+CY+'" r="'+R+'" fill="none" stroke="'+REP_COLORS[i%REP_COLORS.length]+'" stroke-width="'+SW+'"'+
+      ' stroke-dasharray="'+len.toFixed(2)+' '+C.toFixed(2)+'" stroke-dashoffset="'+(-acc).toFixed(2)+'"'+
+      ' transform="rotate(-90 '+CX+' '+CY+')" stroke-linecap="butt"/>';
+    acc+=len;
+  });
+  s+='<text x="'+CX+'" y="'+(CY-2)+'" font-size="11" font-weight="900" fill="var(--ink)" text-anchor="middle">'+moneyShort(total)+'</text>';
+  s+='<text x="'+CX+'" y="'+(CY+11)+'" font-size="7.5" fill="var(--muted)" text-anchor="middle">'+centerLabel+'</text>';
+  s+='</svg>';
+  return s;
+}
+function donutItems(byMap,total){
+  var rows=Object.keys(byMap).map(function(c){return {name:c,v:byMap[c]};}).sort(function(a,b){return b.v-a.v;});
+  if(rows.length>6){
+    var head=rows.slice(0,5),rest=rows.slice(5);
+    head.push({name:'سایر دسته‌ها',v:rest.reduce(function(s,x){return s+x.v;},0)});
+    rows=head;
+  }
+  return rows;
+}
 function renderReport(){
   var d=gatherReport(),el=document.getElementById('repResults');
   if(!d.rows.length){el.innerHTML='<div class="empty">در این بازه داده‌ای نیست.</div>';return;}
-  var h='<div style="font-size:12.5px;color:var(--muted);margin-bottom:11px;">'+escapeHtml(d.scope)+' · '+d.range.label+'</div>';
-  h+='<div class="rep-sum">'+
-    '<div class="rep-card"><div class="k">درآمد</div><div class="v in">'+money(d.inc)+'</div></div>'+
-    '<div class="rep-card"><div class="k">هزینه</div><div class="v out">'+money(d.exp)+'</div></div>'+
-    '<div class="rep-card full"><div class="k">مانده (درآمد − هزینه)</div><div class="v">'+money(d.net)+'</div></div></div>';
+  var bk=repBuckets(d);
+  var today=todayJ();
+  var usedDays=Math.max(1,Math.min(bk.span,jAbs(today)-jAbs(d.range.from)+1));
+  var expTx=d.rows.filter(function(x){return x.t.type==='expense';});
+  var maxExpTx=expTx.slice().sort(function(a,b){return b.t.amount-a.t.amount;})[0];
+  var nin=0,nout=0;
+  d.rows.forEach(function(x){if(x.t.type==='neutral_in')nin+=x.t.amount;if(x.t.type==='neutral_out')nout+=x.t.amount;});
+
+  var h='<div style="font-size:12.5px;color:var(--muted);margin-bottom:11px;font-weight:700;">'+escapeHtml(d.scope)+' · '+d.range.label+'</div>';
+
+  /* KPI grid */
+  h+='<div class="rep-kpis">'+
+    '<div class="rep-kpi"><div class="k">درآمد</div><div class="v in">'+money(d.inc)+'</div></div>'+
+    '<div class="rep-kpi"><div class="k">هزینه</div><div class="v out">'+money(d.exp)+'</div></div>'+
+    '<div class="rep-kpi"><div class="k">مانده</div><div class="v" style="color:'+(d.net<0?'var(--expense)':'var(--income)')+'">'+money(d.net)+'</div></div>'+
+    '<div class="rep-kpi"><div class="k">تعداد تراکنش</div><div class="v">'+fa(d.rows.length)+'</div><div class="s">'+fa(expTx.length)+' هزینه · '+fa(d.rows.filter(function(x){return x.t.type==='income';}).length)+' درآمد</div></div>'+
+    '<div class="rep-kpi"><div class="k">میانگین هزینه روزانه</div><div class="v">'+moneyShort(Math.round(d.exp/usedDays))+'</div><div class="s">در '+fa(usedDays)+' روز</div></div>'+
+    '<div class="rep-kpi"><div class="k">بزرگ‌ترین هزینه</div><div class="v out">'+(maxExpTx?moneyShort(maxExpTx.t.amount):'—')+'</div><div class="s">'+(maxExpTx?escapeHtml((maxExpTx.t.desc||maxExpTx.t.cat||'').slice(0,22)):'')+'</div></div>'+
+  '</div>';
+
+  /* trend chart */
+  if(bk.buckets.length>1){
+    h+='<div class="rep-chart-card"><div class="rep-chart-title"><span>روند '+(bk.mode==='day'?'روزانه':'ماهانه')+'</span><small>'+d.range.label+'</small></div>'+
+      svgTrend(bk)+
+      '<div class="rep-legend"><span><span class="rep-dot" style="background:var(--income)"></span>درآمد</span><span><span class="rep-dot" style="background:var(--expense)"></span>هزینه</span></div></div>';
+  }
+
+  /* expense donut */
+  var eRows=Object.keys(d.byE).map(function(c){return [c,d.byE[c]];}).sort(function(a,b){return b[1]-a[1];});
+  if(d.exp>0&&eRows.length){
+    var items=donutItems(d.byE,d.exp);
+    h+='<div class="rep-chart-card"><div class="rep-chart-title"><span>سهم دسته‌های هزینه</span></div><div class="donut-wrap">'+
+      svgDonut(items,d.exp,'کل هزینه')+
+      '<div class="donut-legend">'+items.map(function(it,i){
+        var pct=Math.round(it.v/d.exp*100);
+        return '<div class="row"><span class="nm"><span class="rep-dot" style="background:'+REP_COLORS[i%REP_COLORS.length]+'"></span>'+escapeHtml(it.name)+'</span><span class="val">'+money(it.v)+' · '+fa(pct)+'٪</span></div>';
+      }).join('')+'</div>'+
+    '</div></div>';
+  }
+
+  /* expense bars (full detail) */
+  if(eRows.length){h+='<div class="rep-sec-title">تفکیک کامل هزینه‌ها</div>';
+    eRows.forEach(function(r){var pct=d.exp?Math.round(r[1]/d.exp*100):0;
+      h+='<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:5px;"><span>'+catIcon('expense',r[0])+' '+escapeHtml(r[0])+'</span><span dir="ltr">'+money(r[1])+' · '+fa(pct)+'٪</span></div><div class="rep-bar-wrap"><div class="rep-bar" style="width:'+pct+'%;"></div></div></div>';});}
+
+  /* income breakdown */
+  var iRows=Object.keys(d.byI).map(function(c){return [c,d.byI[c]];}).sort(function(a,b){return b[1]-a[1];});
+  if(iRows.length){h+='<div class="rep-sec-title">تفکیک درآمدها</div>';
+    iRows.forEach(function(r){var pct=d.inc?Math.round(r[1]/d.inc*100):0;
+      h+='<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:5px;"><span>'+catIcon('income',r[0])+' '+escapeHtml(r[0])+'</span><span dir="ltr">'+money(r[1])+' · '+fa(pct)+'٪</span></div><div class="rep-bar-wrap"><div class="rep-bar" style="width:'+pct+'%;background:var(--income);"></div></div></div>';});}
+
+  /* top 5 expenses */
+  if(expTx.length){
+    h+='<div class="rep-chart-card"><div class="rep-chart-title"><span>بزرگ‌ترین هزینه‌های بازه</span></div>'+
+      expTx.slice().sort(function(a,b){return b.t.amount-a.t.amount;}).slice(0,5).map(function(x){var t=x.t;
+        return '<div class="top-exp-row"><div class="meta"><div>'+catIcon('expense',t.cat)+' '+escapeHtml(t.desc||t.cat)+'</div><div class="d">'+jDateStr(t,false)+(d.allBooks?' · '+escapeHtml(x.book):'')+'</div></div><div class="a">'+money(t.amount)+'</div></div>';
+      }).join('')+'</div>';
+  }
+
+  /* accounts snapshot (single book) */
+  if(!d.allBooks&&typeof accountBalance==='function'&&(activeBook().accounts||[]).length){
+    h+='<div class="rep-chart-card"><div class="rep-chart-title"><span>مانده فعلی حساب‌ها</span><small>تا این لحظه</small></div>'+
+      (activeBook().accounts||[]).map(function(a){var bal=accountBalance(a.id);
+        return '<div class="rep-acc-row"><span>'+a.icon+' '+escapeHtml(a.name)+(a.kind==='personal'?' <small style="color:var(--muted)">(خارج از جمع)</small>':'')+'</span><span class="b" style="color:'+(bal<0?'var(--expense)':'var(--income)')+'">'+money(bal)+'</span></div>';
+      }).join('')+
+      '<div class="rep-acc-row" style="border-top:1.5px solid var(--line);margin-top:4px;"><span><b>جمع نقد و بانک</b></span><span class="b">'+money(typeof totalLiquidBalance==='function'?totalLiquidBalance():fundBalance())+'</span></div></div>';
+  }
+
+  /* neutral flows */
+  if(nin>0||nout>0){
+    h+='<div class="rep-sum"><div class="rep-card"><div class="k">واریز غیر درآمدی</div><div class="v">'+money(nin)+'</div></div>'+
+      '<div class="rep-card"><div class="k">برگشت وجه</div><div class="v">'+money(nout)+'</div></div></div>';
+  }
+
+  /* personal card */
   if(d.persExp>0){
     h+='<div class="rep-sum">'+
       '<div class="rep-card full"><div class="k">💳 هزینه با کارت شخصی</div><div class="v">'+money(d.persExp)+'</div></div>'+
@@ -2999,10 +3200,6 @@ function renderReport(){
     if(d.persFromFund>0||d.persFromMe>0)
       h+='<div class="rep-sum"><div class="rep-card"><div class="k">تسویه از تنخواه</div><div class="v">'+money(d.persFromFund)+'</div></div>'+
         '<div class="rep-card"><div class="k">تسویه مستقیم به من</div><div class="v">'+money(d.persFromMe)+'</div></div></div>';}
-  var eRows=Object.keys(d.byE).map(function(c){return [c,d.byE[c]];}).sort(function(a,b){return b[1]-a[1];});
-  if(eRows.length){h+='<div class="rep-sec-title">تفکیک هزینه بر اساس دسته</div>';
-    eRows.forEach(function(r){var pct=d.exp?Math.round(r[1]/d.exp*100):0;
-      h+='<div style="margin-bottom:12px;"><div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700;margin-bottom:5px;"><span>'+catIcon('expense',r[0])+' '+escapeHtml(r[0])+'</span><span dir="ltr">'+money(r[1])+' · '+fa(pct)+'٪</span></div><div class="rep-bar-wrap"><div class="rep-bar" style="width:'+pct+'%;"></div></div></div>';});}
   if(d.personal.length){h+='<div class="rep-sec-title">💳 ریز هزینه‌های کارت شخصی</div>'+
     '<div class="rep-scroll"><table class="rep-table"><thead><tr><th>تاریخ</th><th>بابت</th><th>مبلغ</th><th>وضعیت</th></tr></thead><tbody>';
     d.personal.forEach(function(x){var t=x.t;
@@ -3010,6 +3207,8 @@ function renderReport(){
       var st=t.settled?'<span class="rep-pill paid">واریز شد'+(t.settledJ?' '+jDateStr(t.settledJ,false):'')+fromTxt+'</span>':'<span class="rep-pill open">در انتظار</span>';
       h+='<tr><td>'+jDateStr(t,false)+'</td><td>'+escapeHtml(t.desc||t.cat)+'</td><td class="amt">'+money(t.amount)+'</td><td>'+st+'</td></tr>';});
     h+='</tbody></table></div>';}
+
+  /* all transactions */
   h+='<div class="rep-sec-title">ریز همهٔ تراکنش‌ها ('+fa(d.rows.length)+')</div>'+
     '<div class="rep-scroll"><table class="rep-table"><thead><tr><th>تاریخ</th><th>بابت</th><th>دسته</th><th>منبع</th><th>مبلغ</th></tr></thead><tbody>';
   d.rows.forEach(function(x){var t=x.t;var sign=t.type==='income'?'+':'−';
@@ -3067,7 +3266,7 @@ function buildReportHtml(d){
     html+='</table>';}
   html+='<h2>ریز همهٔ تراکنش‌ها ('+fa(d.rows.length)+')</h2><table>'+row(['تاریخ','نوع','بابت','دسته','منبع','مبلغ'],'th');
   d.rows.forEach(function(x){var t=x.t;var src=accountNameForTx(t);
-    html+=row([jDateStr(t,false),t.type==='income'?'درآمد':'هزینه',escapeHtml(t.desc||t.cat),escapeHtml(t.cat),src,
+    html+=row([jDateStr(t,false),txTypeLabel(t),escapeHtml(t.desc||t.cat),escapeHtml(t.cat),src,
       '<span class="amt" style="color:'+(t.type==='income'?'#1E8E5A':'#C2453A')+'">'+(t.type==='income'?'+':'−')+money(t.amount)+'</span>']);});
   html+='</table></body></html>';
   return html;
